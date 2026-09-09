@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MetadataEditor } from '@/components/metadata-editor';
 import { isCurrentlyReading, isRead, isToRead } from '@/lib/book-features';
+import { findBookMetadata } from '@/lib/open-library';
 import type {
   BookMetadata,
   LibrarySnapshot,
@@ -33,6 +34,30 @@ function formatDate(value: string | null) {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(date);
+}
+
+function mergeOnlineMetadata(
+  current: BookMetadata | undefined,
+  found: BookMetadata,
+) {
+  if (!current || current.provider !== 'manual') return found;
+  return {
+    ...found,
+    provider: 'manual' as const,
+    providerKey: current.providerKey ?? found.providerKey,
+    sourceUrl: current.sourceUrl ?? found.sourceUrl,
+    coverUrl: current.coverUrl ?? found.coverUrl,
+    subtitle: current.subtitle ?? found.subtitle,
+    synopsis: current.synopsis ?? found.synopsis,
+    subjects: current.subjects.length > 0 ? current.subjects : found.subjects,
+    publishers:
+      current.publishers.length > 0 ? current.publishers : found.publishers,
+    firstPublishYear: current.firstPublishYear ?? found.firstPublishYear,
+    pageCount: current.pageCount ?? found.pageCount,
+    seriesName: current.seriesName ?? found.seriesName,
+    seriesPosition: current.seriesPosition ?? found.seriesPosition,
+    manualEditedAt: current.manualEditedAt,
+  };
 }
 
 export function DataView({
@@ -60,6 +85,7 @@ export function DataView({
     'backup' | 'restore' | 'metadata-import' | 'clear' | null
   >(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [lookupBookId, setLookupBookId] = useState<string | null>(null);
   const [correctionQuery, setCorrectionQuery] = useState('');
   const [editingBook, setEditingBook] = useState<
     (typeof snapshot.books)[number] | null
@@ -190,6 +216,39 @@ export function DataView({
     }
   }
 
+  async function lookupBook(book: (typeof snapshot.books)[number]) {
+    setLookupBookId(book.id);
+    setMessage(null);
+    const current = snapshot.bookMetadata[book.id];
+    try {
+      const found = await findBookMetadata(book);
+      if (found.status !== 'matched') {
+        setMessage(`No reliable online match was found for “${book.title}”.`);
+        return;
+      }
+      const merged = mergeOnlineMetadata(current, found);
+      const added = [
+        !current?.coverUrl && merged.coverUrl && 'cover',
+        !current?.synopsis && merged.synopsis && 'synopsis',
+        (!current || current.subjects.length === 0) &&
+          merged.subjects.length > 0 &&
+          'story details',
+      ].filter((value): value is string => typeof value === 'string');
+      await onSaveMetadata(merged);
+      setMessage(
+        added.length > 0
+          ? `Found ${added.join(', ')} for “${book.title}”.`
+          : `Checked “${book.title}”; its saved details are already the best match.`,
+      );
+    } catch {
+      setMessage(
+        `Online search for “${book.title}” could not finish. Try again in a moment.`,
+      );
+    } finally {
+      setLookupBookId(null);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-4xl">
       <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
@@ -263,16 +322,17 @@ export function DataView({
               Covers, genres & synopses
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
-              Add catalog details
+              Find book details as you need them
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Catalog details can be merged into this browser without replacing
-              your Goodreads books, ratings, reviews, shelves, or reading dates.
-              Matched books credit Open Library.
+              Use the online search beside any book below to look for its cover,
+              synopsis, and story details. Your Goodreads books, ratings,
+              reviews, shelves, and reading dates stay unchanged.
             </p>
           </div>
           <div>
             <Button
+              variant="outline"
               className="h-11 rounded-xl"
               disabled={books.length === 0 || busy !== null}
               onClick={() => metadataRef.current?.click()}
@@ -280,7 +340,7 @@ export function DataView({
               <Upload />
               {busy === 'metadata-import'
                 ? 'Importing…'
-                : 'Import catalog details'}
+                : 'Import a catalog file'}
             </Button>
             <input
               ref={metadataRef}
@@ -323,15 +383,15 @@ export function DataView({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
-              Manual corrections
+              Direct book search
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
               Fix missing book details
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Search for any book and add or correct its cover, synopsis,
-              genres, publisher, pages, publication year, and series position.
-              Corrections stay local and survive Goodreads CSV updates.
+              Search your library, then choose Search online to fill missing
+              details automatically. You can still review or adjust the result
+              with Edit.
             </p>
           </div>
           <span className="rounded-full border border-border bg-background/35 px-3 py-1.5 text-xs text-muted-foreground">
@@ -381,14 +441,26 @@ export function DataView({
                       : 'Catalog details complete'}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 rounded-lg"
-                  onClick={() => setEditingBook(book)}
-                >
-                  <Pencil /> Edit
-                </Button>
+                <div className="flex shrink-0 flex-col gap-1.5">
+                  <Button
+                    size="sm"
+                    className="rounded-lg"
+                    disabled={lookupBookId !== null || busy !== null}
+                    onClick={() => void lookupBook(book)}
+                  >
+                    <Search />
+                    {lookupBookId === book.id ? 'Searching…' : 'Search online'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg"
+                    disabled={lookupBookId !== null}
+                    onClick={() => setEditingBook(book)}
+                  >
+                    <Pencil /> Edit
+                  </Button>
+                </div>
               </div>
             );
           })}

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { enrichBookMetadata } from '@/lib/open-library';
+import { enrichBookMetadata, findBookMetadata } from '@/lib/open-library';
 import type { BookMetadata, BookRecord } from '@/lib/types';
 
 function book(overrides: Partial<BookRecord>): BookRecord {
@@ -94,6 +94,50 @@ describe('Open Library enrichment', () => {
         'A traveler discovers a hidden city and must decide whether to reveal its secret.',
       subjects: ['Fantasy fiction'],
       pageCount: 321,
+    });
+  });
+
+  it('finds a cover and synopsis directly for one book', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            'ISBN:9781234567890': {
+              key: '/books/OL456M',
+              url: 'https://openlibrary.org/books/OL456M',
+              title: 'A Known Book',
+              cover: {
+                medium: 'https://covers.openlibrary.org/b/id/84-M.jpg',
+              },
+              subjects: [{ name: 'Adventure' }],
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            'ISBN:9781234567890': {
+              details: {
+                description: 'A direct synopsis found from inside the app.',
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const found = await findBookMetadata(book({}));
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(found).toMatchObject({
+      status: 'matched',
+      coverUrl: 'https://covers.openlibrary.org/b/id/84-M.jpg',
+      synopsis: 'A direct synopsis found from inside the app.',
+      subjects: ['Adventure'],
     });
   });
 });

@@ -18,15 +18,22 @@ import { NextReadView } from '@/components/next-read-view';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   clearLocalLibrary,
+  clearRecommendationFeedback,
   createBackup,
   getLibrarySnapshot,
   importBookMetadataCache,
   restoreBackup,
   saveBookMetadata,
+  saveRecommendationFeedback,
   saveRankingOrder,
 } from '@/lib/database';
 import { buildTasteProfile } from '@/lib/taste-profile';
-import type { BookMetadata, ImportSummary, LibrarySnapshot } from '@/lib/types';
+import type {
+  BookMetadata,
+  ImportSummary,
+  LibrarySnapshot,
+  RecommendationFeedback,
+} from '@/lib/types';
 
 type View = 'next' | 'library' | 'insights' | 'data';
 
@@ -34,6 +41,7 @@ const emptySnapshot: LibrarySnapshot = {
   books: [],
   bookMetadata: {},
   rankingOrder: [],
+  recommendationFeedback: [],
   importedAt: null,
   sourceFileName: null,
 };
@@ -155,7 +163,7 @@ export function NextChapterApp() {
   async function handleMetadataSave(entry: BookMetadata) {
     await saveBookMetadata(entry);
     await refresh();
-    setAnnouncement('Book details corrected and saved on this device.');
+    setAnnouncement('Book details saved on this device.');
   }
 
   async function handleRankingOrderChange(ids: string[]) {
@@ -166,6 +174,17 @@ export function NextChapterApp() {
         ? 'Personal ranking order saved.'
         : 'Ranking reset to your Goodreads ratings.',
     );
+  }
+
+  async function handleRecommendationFeedback(entry: RecommendationFeedback) {
+    const next = await saveRecommendationFeedback(entry);
+    await refresh();
+    return next;
+  }
+
+  async function handleRecommendationFeedbackReset() {
+    await clearRecommendationFeedback();
+    await refresh();
   }
 
   return (
@@ -207,18 +226,7 @@ export function NextChapterApp() {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => changeView('library')}
-              className="hidden min-h-10 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground sm:block"
-            >
-              {loading
-                ? 'Loading…'
-                : `${snapshot.books.filter((book) => book.exclusiveShelf === 'to-read' || book.bookshelves.includes('to-read')).length.toLocaleString()} to read`}
-            </button>
-          </div>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -228,8 +236,11 @@ export function NextChapterApp() {
             books={snapshot.books}
             metadata={snapshot.bookMetadata}
             profile={profile}
+            feedback={snapshot.recommendationFeedback}
             loading={loading}
             onImport={() => setImportOpen(true)}
+            onFeedback={handleRecommendationFeedback}
+            onResetFeedback={handleRecommendationFeedbackReset}
           />
         )}
         {view === 'library' && (

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
+  Ban,
   BookHeart,
   BookOpenCheck,
   Clock3,
@@ -11,6 +12,7 @@ import {
   Flame,
   Sparkles,
   Tags,
+  TextSearch,
 } from 'lucide-react';
 
 import { BookCover } from '@/components/book-cover';
@@ -28,6 +30,8 @@ import type {
   BookRecord,
   BookRecommendation,
   ReadingContext,
+  RecommendationFeedback,
+  RecommendationFeedbackAction,
   SurpriseMode,
   TasteProfile,
 } from '@/lib/types';
@@ -42,14 +46,22 @@ export function NextReadView({
   books,
   metadata,
   profile,
+  feedback,
   loading,
   onImport,
+  onFeedback,
+  onResetFeedback,
 }: {
   books: BookRecord[];
   metadata: BookMetadataMap;
   profile: TasteProfile;
+  feedback: RecommendationFeedback[];
   loading: boolean;
   onImport: () => void;
+  onFeedback: (
+    entry: RecommendationFeedback,
+  ) => Promise<RecommendationFeedback[]>;
+  onResetFeedback: () => Promise<void>;
 }) {
   const [context, setContext] = useState<ReadingContext>(initialContext);
   const [recommendations, setRecommendations] = useState<BookRecommendation[]>(
@@ -58,6 +70,8 @@ export function NextReadView({
   const [surprise, setSurprise] = useState<BookRecommendation | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [runIndex, setRunIndex] = useState(0);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const toRead = useMemo(() => books.filter(isToRead), [books]);
   const genres = useMemo(
@@ -106,6 +120,7 @@ export function NextReadView({
   }
 
   function findNext(avoidCurrent = false) {
+    setFeedbackMessage(null);
     const nextRun = runIndex + 1;
     const next = recommendBooks({
       books,
@@ -113,6 +128,7 @@ export function NextReadView({
       context,
       metadata,
       excludedIds: avoidCurrent ? history : [],
+      feedback,
       runIndex: nextRun,
     });
     setRunIndex(nextRun);
@@ -123,6 +139,7 @@ export function NextReadView({
   }
 
   function runSurprise(mode: SurpriseMode) {
+    setFeedbackMessage(null);
     const nextRun = runIndex + 1;
     const result = surpriseBook({
       books,
@@ -130,6 +147,7 @@ export function NextReadView({
       mode,
       metadata,
       excludedIds: history,
+      feedback,
       runIndex: nextRun,
     });
     setRunIndex(nextRun);
@@ -137,6 +155,83 @@ export function NextReadView({
     setRecommendations([]);
     if (result) setHistory((current) => [...current, result.book.id]);
     reveal();
+  }
+
+  async function recordFeedback(
+    book: BookRecord,
+    action: RecommendationFeedbackAction,
+  ) {
+    const pageCount = book.pageCount ?? metadata[book.id]?.pageCount ?? null;
+    const entry: RecommendationFeedback = {
+      bookId: book.id,
+      action,
+      pageCount,
+      createdAt: new Date().toISOString(),
+    };
+    setFeedbackBusy(true);
+    try {
+      const nextFeedback = await onFeedback(entry);
+      const nextRun = runIndex + 1;
+      const nextContext =
+        action === 'too-long' && pageCount && pageCount > 250
+          ? { ...context, length: 'short' as const }
+          : context;
+      const displayedIds = recommendations.length
+        ? recommendations.map((item) => item.book.id)
+        : surprise
+          ? [surprise.book.id]
+          : [];
+      let next = recommendBooks({
+        books,
+        profile,
+        context: nextContext,
+        metadata,
+        excludedIds: [...history, ...displayedIds],
+        feedback: nextFeedback,
+        runIndex: nextRun,
+      });
+      if (next.length === 0) {
+        next = recommendBooks({
+          books,
+          profile,
+          context: nextContext,
+          metadata,
+          excludedIds: displayedIds,
+          feedback: nextFeedback,
+          runIndex: nextRun,
+        });
+      }
+      setContext(nextContext);
+      setRunIndex(nextRun);
+      setRecommendations(next);
+      setSurprise(null);
+      setHistory((current) => [
+        ...current,
+        ...next.map((item) => item.book.id),
+      ]);
+      setFeedbackMessage(
+        action === 'not-now'
+          ? 'Noted — this book will stay out of your next picks.'
+          : action === 'too-long'
+            ? 'Noted — the next shortlist favors shorter books.'
+            : 'Noted — the next shortlist follows similar story patterns.',
+      );
+      reveal();
+    } catch {
+      setFeedbackMessage('That preference could not be saved. Try again.');
+    } finally {
+      setFeedbackBusy(false);
+    }
+  }
+
+  async function resetFeedback() {
+    setFeedbackBusy(true);
+    try {
+      await onResetFeedback();
+      setFeedbackMessage('Quick feedback reset.');
+    } finally {
+      setFeedbackBusy(false);
+    }
   }
 
   return (
@@ -299,6 +394,11 @@ export function NextReadView({
       </section>
 
       <div ref={resultsRef} className="scroll-mt-24">
+        {feedbackMessage && (
+          <output className="mt-8 block rounded-xl border border-primary/25 bg-primary-muted/35 px-4 py-3 text-sm text-foreground">
+            {feedbackMessage}
+          </output>
+        )}
         {recommendations.length > 0 && (
           <Results
             title={
@@ -316,6 +416,10 @@ export function NextReadView({
             recommendations={recommendations}
             metadata={metadata}
             onAgain={() => findNext(true)}
+            onFeedback={recordFeedback}
+            feedbackBusy={feedbackBusy}
+            feedbackCount={feedback.length}
+            onResetFeedback={resetFeedback}
           />
         )}
         {surprise && (
@@ -325,6 +429,10 @@ export function NextReadView({
             recommendations={[surprise]}
             metadata={metadata}
             onAgain={() => runSurprise('wildcard')}
+            onFeedback={recordFeedback}
+            feedbackBusy={feedbackBusy}
+            feedbackCount={feedback.length}
+            onResetFeedback={resetFeedback}
           />
         )}
         {recommendations.length === 0 && !surprise && history.length > 0 && (
@@ -388,12 +496,23 @@ function Results({
   recommendations,
   metadata,
   onAgain,
+  onFeedback,
+  feedbackBusy,
+  feedbackCount,
+  onResetFeedback,
 }: {
   title: string;
   subtitle: string;
   recommendations: BookRecommendation[];
   metadata: BookMetadataMap;
   onAgain: () => void;
+  onFeedback: (
+    book: BookRecord,
+    action: RecommendationFeedbackAction,
+  ) => Promise<void>;
+  feedbackBusy: boolean;
+  feedbackCount: number;
+  onResetFeedback: () => Promise<void>;
 }) {
   return (
     <section className="mt-12">
@@ -407,9 +526,26 @@ function Results({
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
         </div>
-        <Button variant="ghost" className="h-10 rounded-xl" onClick={onAgain}>
-          Give me another set
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {feedbackCount > 0 && (
+            <Button
+              variant="ghost"
+              className="h-10 rounded-xl"
+              disabled={feedbackBusy}
+              onClick={() => void onResetFeedback()}
+            >
+              Reset feedback
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            className="h-10 rounded-xl"
+            disabled={feedbackBusy}
+            onClick={onAgain}
+          >
+            Give me another set
+          </Button>
+        </div>
       </div>
       <div
         className={`mt-6 grid gap-4 ${recommendations.length > 1 ? 'md:grid-cols-3' : 'mx-auto max-w-md'}`}
@@ -420,6 +556,8 @@ function Results({
             recommendation={recommendation}
             metadata={metadata}
             index={index}
+            onFeedback={onFeedback}
+            feedbackBusy={feedbackBusy}
           />
         ))}
       </div>
@@ -431,10 +569,17 @@ function RecommendationCard({
   recommendation,
   metadata,
   index,
+  onFeedback,
+  feedbackBusy,
 }: {
   recommendation: BookRecommendation;
   metadata: BookMetadataMap;
   index: number;
+  onFeedback: (
+    book: BookRecord,
+    action: RecommendationFeedbackAction,
+  ) => Promise<void>;
+  feedbackBusy: boolean;
 }) {
   const { book, reasons, score } = recommendation;
   const details = metadata[book.id];
@@ -489,6 +634,40 @@ function RecommendationCard({
               <span>★ {book.averageRating.toFixed(2)}</span>
             )}
             {publicationYear && <span>{publicationYear}</span>}
+          </div>
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="text-[0.68rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+              Tune your next picks
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-lg px-2 text-[0.7rem]"
+                disabled={feedbackBusy}
+                onClick={() => void onFeedback(book, 'not-now')}
+              >
+                <Ban className="size-3" /> Not now
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-lg px-2 text-[0.7rem]"
+                disabled={feedbackBusy}
+                onClick={() => void onFeedback(book, 'too-long')}
+              >
+                <TextSearch className="size-3" /> Too long
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-lg px-2 text-[0.7rem]"
+                disabled={feedbackBusy}
+                onClick={() => void onFeedback(book, 'more-like-this')}
+              >
+                <BookHeart className="size-3" /> More like this
+              </Button>
+            </div>
           </div>
           {book.goodreadsId && (
             <a

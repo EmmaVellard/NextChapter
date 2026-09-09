@@ -1,14 +1,17 @@
 import {
+  BarChart3,
   Compass,
   Feather,
   Flame,
   Layers3,
   Sparkles,
+  Tags,
   Upload,
+  UserRound,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import type { TasteProfile } from '@/lib/types';
+import type { TasteProfile, TasteSignal } from '@/lib/types';
 
 export function TasteView({
   profile,
@@ -169,6 +172,71 @@ export function TasteView({
           </p>
         </article>
       )}
+
+      {(profile.favoriteGenres.length > 0 ||
+        profile.favoriteAuthors.length > 0) && (
+        <section className="mt-10 border-t border-border pt-8">
+          <div className="flex items-center gap-3">
+            <BarChart3 className="size-5 text-primary" />
+            <div>
+              <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+                Reading statistics
+              </p>
+              <h2 className="mt-1 font-serif text-3xl tracking-[-0.04em]">
+                A few familiar landmarks
+              </h2>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <TasteStats
+              title="Genres you rate highest"
+              icon={Tags}
+              signals={profile.favoriteGenres}
+            />
+            <TasteStats
+              title="Authors that stand out"
+              icon={UserRound}
+              signals={profile.favoriteAuthors}
+            />
+          </div>
+        </section>
+      )}
     </section>
+  );
+}
+
+function TasteStats({
+  title,
+  icon: Icon,
+  signals,
+}: {
+  title: string;
+  icon: typeof Tags;
+  signals: TasteSignal[];
+}) {
+  return (
+    <article className="rounded-[2rem] border border-border bg-card p-6">
+      <div className="flex items-center gap-2">
+        <Icon className="size-4 text-primary" />
+        <h3 className="font-semibold">{title}</h3>
+      </div>
+      <div className="mt-5 space-y-3">
+        {signals.map((signal) => (
+          <div
+            key={`${signal.dimension}:${signal.value}`}
+            className="flex items-center justify-between gap-4 rounded-xl bg-background/40 px-4 py-3"
+          >
+            <p className="font-medium">{signal.value}</p>
+            <p className="shrink-0 text-right text-xs text-muted-foreground">
+              {signal.average.toFixed(2)} average
+              <span className="block">
+                {signal.sampleSize} rated{' '}
+                {signal.sampleSize === 1 ? 'book' : 'books'}
+              </span>
+            </p>
+          </div>
+        ))}
+      </div>
+    </article>
   );
 }

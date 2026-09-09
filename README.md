@@ -30,7 +30,8 @@ Next Chapter helps you:
 
 - browse the books already waiting on your shelf;
 - continue a series in order without being sent several volumes ahead;
-- correct a missing cover, synopsis, or book detail;
+- find a missing cover or synopsis online without leaving the app;
+- refine future suggestions with **Not now**, **Too long**, or **More like this**;
 - revisit every book you finished during a particular year;
 - create and reorder a personal ranking of your finished books;
 - switch between a warm light mode and a quiet dark mode.

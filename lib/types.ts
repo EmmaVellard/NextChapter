@@ -51,8 +51,21 @@ export interface LibrarySnapshot {
   books: BookRecord[];
   bookMetadata: BookMetadataMap;
   rankingOrder: string[];
+  recommendationFeedback: RecommendationFeedback[];
   importedAt: string | null;
   sourceFileName: string | null;
+}
+
+export type RecommendationFeedbackAction =
+  | 'not-now'
+  | 'too-long'
+  | 'more-like-this';
+
+export interface RecommendationFeedback {
+  bookId: string;
+  action: RecommendationFeedbackAction;
+  pageCount: number | null;
+  createdAt: string;
 }
 
 export interface ImportSummary {

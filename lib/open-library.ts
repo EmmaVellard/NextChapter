@@ -44,6 +44,10 @@ type BooksApiDetailsEntry = {
 
 type BooksApiDetailsResponse = Record<string, BooksApiDetailsEntry>;
 
+type WorkResponse = {
+  description?: string | { value?: string };
+};
+
 const searchFields = [
   'key',
   'title',
@@ -309,6 +313,84 @@ function chunks<T>(items: T[], size: number) {
 
 function waitForRateLimit() {
   return new Promise((resolve) => setTimeout(resolve, 1050));
+}
+
+function mergeFoundMetadata(
+  primary: BookMetadata | null,
+  fallback: BookMetadata,
+) {
+  if (!primary || primary.status !== 'matched') return fallback;
+  if (fallback.status !== 'matched') return primary;
+  return {
+    ...fallback,
+    providerKey: primary.providerKey ?? fallback.providerKey,
+    sourceUrl: primary.sourceUrl ?? fallback.sourceUrl,
+    coverUrl: primary.coverUrl ?? fallback.coverUrl,
+    subtitle: primary.subtitle ?? fallback.subtitle,
+    synopsis: primary.synopsis ?? fallback.synopsis,
+    subjects:
+      primary.subjects.length > 0 ? primary.subjects : fallback.subjects,
+    publishers:
+      primary.publishers.length > 0 ? primary.publishers : fallback.publishers,
+    firstPublishYear: primary.firstPublishYear ?? fallback.firstPublishYear,
+    pageCount: primary.pageCount ?? fallback.pageCount,
+  };
+}
+
+export async function findBookMetadata(book: BookRecord) {
+  const isbn = preferredIsbn(book);
+  let isbnMetadata: BookMetadata | null = null;
+
+  if (isbn) {
+    try {
+      const entries = await booksByIsbn([book]);
+      isbnMetadata = metadataForBooksApi(book, entries[`ISBN:${isbn}`] ?? null);
+      await waitForRateLimit();
+      try {
+        const details = await bookDetailsByIsbn([book]);
+        isbnMetadata = {
+          ...isbnMetadata,
+          synopsis:
+            shortSynopsis(details[`ISBN:${isbn}`]?.details?.description) ??
+            isbnMetadata.synopsis,
+        };
+      } catch {
+        // Continue with the cover and edition details already found.
+      }
+    } catch {
+      // A title-and-author search below can still find another edition.
+    }
+  }
+
+  try {
+    if (isbnMetadata?.coverUrl && isbnMetadata.synopsis) return isbnMetadata;
+    if (isbn) await waitForRateLimit();
+    const result = await search(
+      `title:${titleQueryValue(searchTitle(book.title))} author:${titleQueryValue(book.author)}`,
+      20,
+    );
+    const matched = bestMatch(book, result.docs ?? []);
+    let searched = metadataFor(book, matched);
+    if (searched.providerKey?.startsWith('/works/')) {
+      await waitForRateLimit();
+      try {
+        const work = await fetchJson<WorkResponse>(
+          `https://openlibrary.org${searched.providerKey}.json`,
+          15_000,
+        );
+        searched = {
+          ...searched,
+          synopsis: shortSynopsis(work.description) ?? searched.synopsis,
+        };
+      } catch {
+        // Search results may still include a cover and useful book details.
+      }
+    }
+    return mergeFoundMetadata(isbnMetadata, searched);
+  } catch (error) {
+    if (isbnMetadata?.status === 'matched') return isbnMetadata;
+    throw error;
+  }
 }
 
 export async function enrichBookMetadata({

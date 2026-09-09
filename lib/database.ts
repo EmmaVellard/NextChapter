@@ -9,6 +9,7 @@ import type {
   LibrarySnapshot,
   MetadataCacheSnapshot,
   MetadataImportSummary,
+  RecommendationFeedback,
 } from '@/lib/types';
 
 interface NextChapterDb extends DBSchema {
@@ -32,6 +33,7 @@ const emptySnapshot: LibrarySnapshot = {
   books: [],
   bookMetadata: {},
   rankingOrder: [],
+  recommendationFeedback: [],
   importedAt: null,
   sourceFileName: null,
 };
@@ -114,23 +116,56 @@ function storedStringList(value: string | null) {
   }
 }
 
+function storedRecommendationFeedback(value: string | null) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is RecommendationFeedback => {
+      if (!item || typeof item !== 'object') return false;
+      const candidate = item as Partial<RecommendationFeedback>;
+      return (
+        typeof candidate.bookId === 'string' &&
+        ['not-now', 'too-long', 'more-like-this'].includes(
+          candidate.action ?? '',
+        ) &&
+        (candidate.pageCount === null ||
+          typeof candidate.pageCount === 'number') &&
+        typeof candidate.createdAt === 'string'
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function getLibrarySnapshot(): Promise<LibrarySnapshot> {
   if (typeof window === 'undefined') return emptySnapshot;
   const database = await getDatabase();
-  const [books, bookMetadataRows, rankingOrder, importedAt, sourceFileName] =
-    await Promise.all([
-      database.getAll('books'),
-      database.getAll('bookMetadata'),
-      metadataValue('rankingOrder'),
-      metadataValue('importedAt'),
-      metadataValue('sourceFileName'),
-    ]);
+  const [
+    books,
+    bookMetadataRows,
+    rankingOrder,
+    recommendationFeedback,
+    importedAt,
+    sourceFileName,
+  ] = await Promise.all([
+    database.getAll('books'),
+    database.getAll('bookMetadata'),
+    metadataValue('rankingOrder'),
+    metadataValue('recommendationFeedback'),
+    metadataValue('importedAt'),
+    metadataValue('sourceFileName'),
+  ]);
   return {
     books,
     bookMetadata: Object.fromEntries(
       bookMetadataRows.map((entry) => [entry.bookId, entry]),
     ),
     rankingOrder: storedStringList(rankingOrder),
+    recommendationFeedback: storedRecommendationFeedback(
+      recommendationFeedback,
+    ),
     importedAt,
     sourceFileName,
   };
@@ -209,6 +244,29 @@ export async function saveRankingOrder(ids: string[]) {
     key: 'rankingOrder',
     value: JSON.stringify(Array.from(new Set(ids))),
   });
+}
+
+export async function saveRecommendationFeedback(
+  entry: RecommendationFeedback,
+) {
+  const database = await getDatabase();
+  const current = storedRecommendationFeedback(
+    (await database.get('metadata', 'recommendationFeedback'))?.value ?? null,
+  );
+  const next = [
+    ...current.filter((item) => item.bookId !== entry.bookId),
+    entry,
+  ].slice(-100);
+  await database.put('metadata', {
+    key: 'recommendationFeedback',
+    value: JSON.stringify(next),
+  });
+  return next;
+}
+
+export async function clearRecommendationFeedback() {
+  const database = await getDatabase();
+  await database.delete('metadata', 'recommendationFeedback');
 }
 
 function isBookMetadata(value: unknown): value is BookMetadata {
@@ -334,6 +392,10 @@ export async function restoreBackup(value: unknown) {
   await transaction.objectStore('metadata').put({
     key: 'rankingOrder',
     value: JSON.stringify(candidate.snapshot.rankingOrder ?? []),
+  });
+  await transaction.objectStore('metadata').put({
+    key: 'recommendationFeedback',
+    value: JSON.stringify(candidate.snapshot.recommendationFeedback ?? []),
   });
   if (version === 2) {
     const bookMetadata = candidate.snapshot.bookMetadata ?? {};

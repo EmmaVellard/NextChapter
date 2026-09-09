@@ -6,10 +6,67 @@ import type {
   BookRecord,
   BookRecommendation,
   ReadingContext,
+  RecommendationFeedback,
   SurpriseMode,
   TasteProfile,
   TasteSignal,
 } from '@/lib/types';
+
+function feedbackAffinity(
+  book: BookRecord,
+  feedback: RecommendationFeedback[],
+  allBooks: BookRecord[],
+  metadata: BookMetadataMap,
+) {
+  const seeds = feedback
+    .filter((entry) => entry.action === 'more-like-this')
+    .slice(-5)
+    .map((entry) => allBooks.find((item) => item.id === entry.bookId))
+    .filter((item): item is BookRecord => Boolean(item));
+  if (seeds.length === 0) return { boost: 0, reason: null };
+
+  const candidateFeatures = featuresForBook(book, metadata);
+  let bestBoost = 0;
+  let bestStory: string | null = null;
+  for (const seed of seeds) {
+    const seedFeatures = new Set(
+      featuresForBook(seed, metadata).map(
+        (feature) => `${feature.dimension}:${feature.value.toLowerCase()}`,
+      ),
+    );
+    const shared = candidateFeatures.filter((feature) =>
+      seedFeatures.has(`${feature.dimension}:${feature.value.toLowerCase()}`),
+    );
+    const story = shared.find((feature) => feature.dimension === 'story');
+    const boost = Math.min(
+      0.14,
+      shared.reduce(
+        (sum, feature) =>
+          sum +
+          (feature.dimension === 'story'
+            ? 0.08
+            : feature.dimension === 'author'
+              ? 0.07
+              : feature.dimension === 'genre'
+                ? 0.035
+                : 0),
+        0,
+      ),
+    );
+    if (boost > bestBoost) {
+      bestBoost = boost;
+      bestStory = story?.value ?? null;
+    }
+  }
+  return {
+    boost: bestBoost,
+    reason: bestStory
+      ? `More of the ${bestStory.toLowerCase()} story shape you asked for`
+      : bestBoost > 0
+        ? 'Similar to a book you wanted more of'
+        : null,
+  };
+}
 
 function deterministicNoise(value: string, runIndex: number) {
   let hash = 0;
@@ -86,6 +143,7 @@ function recommendationFor(
   context: ReadingContext,
   metadata: BookMetadataMap,
   allBooks: BookRecord[],
+  feedback: RecommendationFeedback[],
   runIndex: number,
 ): BookRecommendation | null {
   if (!passesLength(book, context, metadata)) return null;
@@ -100,6 +158,7 @@ function recommendationFor(
     ? Math.max(0, Math.min(1, (book.averageRating - 3.2) / 1.4))
     : 0.5;
   const backlog = backlogFit(book);
+  const feedbackMatch = feedbackAffinity(book, feedback, allBooks, metadata);
   const weights =
     context.discovery === 'familiar'
       ? {
@@ -133,6 +192,7 @@ function recommendationFor(
         genre * weights.genre +
         community * weights.community +
         backlog * weights.backlog +
+        feedbackMatch.boost +
         deterministicNoise(book.id, runIndex),
     ),
   );
@@ -147,6 +207,8 @@ function recommendationFor(
       `Next eligible ${seriesStatus.series.name} volume after ${seriesStatus.highestFinished}`,
     );
   }
+
+  if (feedbackMatch.reason) reasons.push(feedbackMatch.reason);
 
   if (context.genre !== 'any') {
     reasons.push(
@@ -199,6 +261,7 @@ export function recommendBooks({
   context,
   metadata = {},
   excludedIds = [],
+  feedback = [],
   runIndex = 0,
   limit = 3,
 }: {
@@ -207,14 +270,36 @@ export function recommendBooks({
   context: ReadingContext;
   metadata?: BookMetadataMap;
   excludedIds?: string[];
+  feedback?: RecommendationFeedback[];
   runIndex?: number;
   limit?: number;
 }) {
   const excluded = new Set(excludedIds);
+  for (const entry of feedback) {
+    if (entry.action !== 'more-like-this') excluded.add(entry.bookId);
+  }
+  const tooLongLimit = [...feedback]
+    .reverse()
+    .find(
+      (entry) => entry.action === 'too-long' && entry.pageCount !== null,
+    )?.pageCount;
   const candidates = books
-    .filter((book) => isToRead(book) && !excluded.has(book.id))
+    .filter((book) => {
+      if (!isToRead(book) || excluded.has(book.id)) return false;
+      if (context.length !== 'any' || !tooLongLimit) return true;
+      const pages = book.pageCount ?? metadata[book.id]?.pageCount;
+      return Boolean(pages && pages < tooLongLimit);
+    })
     .map((book) =>
-      recommendationFor(book, profile, context, metadata, books, runIndex),
+      recommendationFor(
+        book,
+        profile,
+        context,
+        metadata,
+        books,
+        feedback,
+        runIndex,
+      ),
     )
     .filter((result): result is BookRecommendation => Boolean(result))
     .sort((a, b) => b.score.total - a.score.total);
@@ -237,6 +322,7 @@ export function surpriseBook({
   mode,
   metadata = {},
   excludedIds = [],
+  feedback = [],
   runIndex = 0,
 }: {
   books: BookRecord[];
@@ -244,6 +330,7 @@ export function surpriseBook({
   mode: SurpriseMode;
   metadata?: BookMetadataMap;
   excludedIds?: string[];
+  feedback?: RecommendationFeedback[];
   runIndex?: number;
 }) {
   const context: ReadingContext = {
@@ -262,6 +349,7 @@ export function surpriseBook({
     context,
     metadata,
     excludedIds,
+    feedback,
     runIndex,
     limit: Math.max(3, books.length),
   });

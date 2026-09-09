@@ -151,4 +151,99 @@ describe('recommendBooks', () => {
     expect(result.map((item) => item.book.id)).toEqual(['next']);
     expect(result[0].reasons[0]).toMatch(/after 3/);
   });
+
+  it('uses not-now and too-long feedback as future constraints', () => {
+    const books = [
+      book({
+        id: 'dismissed',
+        exclusiveShelf: 'to-read',
+        readCount: 0,
+        pageCount: 180,
+      }),
+      book({
+        id: 'too-long',
+        exclusiveShelf: 'to-read',
+        readCount: 0,
+        pageCount: 700,
+      }),
+      book({
+        id: 'shorter',
+        exclusiveShelf: 'to-read',
+        readCount: 0,
+        pageCount: 320,
+      }),
+      book({
+        id: 'unknown-length',
+        exclusiveShelf: 'to-read',
+        readCount: 0,
+        pageCount: null,
+      }),
+    ];
+    const result = recommendBooks({
+      books,
+      profile: buildTasteProfile(books),
+      context: { genre: 'any', length: 'any', discovery: 'balanced' },
+      feedback: [
+        {
+          bookId: 'dismissed',
+          action: 'not-now',
+          pageCount: 180,
+          createdAt: '2026-09-08T00:00:00.000Z',
+        },
+        {
+          bookId: 'too-long',
+          action: 'too-long',
+          pageCount: 700,
+          createdAt: '2026-09-08T00:01:00.000Z',
+        },
+      ],
+    });
+
+    expect(result.map((item) => item.book.id)).toEqual(['shorter']);
+  });
+
+  it('boosts books with story traits shared by a more-like-this pick', () => {
+    const books = [
+      book({
+        id: 'seed',
+        author: 'Shared Author',
+        exclusiveShelf: 'to-read',
+        bookshelves: ['to-read', 'dark-fantasy'],
+        readCount: 0,
+      }),
+      book({
+        id: 'similar',
+        author: 'Shared Author',
+        exclusiveShelf: 'to-read',
+        bookshelves: ['to-read', 'dark-fantasy'],
+        averageRating: 3.9,
+        readCount: 0,
+      }),
+      book({
+        id: 'popular',
+        author: 'Other Author',
+        exclusiveShelf: 'to-read',
+        bookshelves: ['to-read', 'mystery'],
+        averageRating: 4.4,
+        readCount: 0,
+      }),
+    ];
+    const result = recommendBooks({
+      books,
+      profile: buildTasteProfile(books),
+      context: { genre: 'any', length: 'any', discovery: 'balanced' },
+      excludedIds: ['seed'],
+      feedback: [
+        {
+          bookId: 'seed',
+          action: 'more-like-this',
+          pageCount: 300,
+          createdAt: '2026-09-08T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(result[0].book.id).toBe('similar');
+    expect(result[0].reasons[0]).toMatch(/story shape/i);
+  });
 });
