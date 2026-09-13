@@ -1,4 +1,4 @@
-name: Deploy Book Companion to GitHub Pages
+name: Deploy Next Chapter to GitHub Pages
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAGES: 'true'
-      NEXT_PUBLIC_BASE_PATH: '/BookCompanion'
+      NEXT_PUBLIC_BASE_PATH: '/NextChapter'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

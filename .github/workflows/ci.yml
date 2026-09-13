@@ -1,4 +1,4 @@
-name: Verify Book Companion
+name: Verify Next Chapter
 
 on:
   push:
