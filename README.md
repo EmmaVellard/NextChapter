@@ -2,6 +2,8 @@
 
 ### Less scrolling. More reading.
 
+[Open Next Chapter](https://emmavellard.github.io/NextChapter/)
+
 Next Chapter turns an overflowing Goodreads shelf into three thoughtful choices
 for what to read next. Choose the kind of book you want, see why each title
 fits, and start a new chapter without spending the evening comparing hundreds

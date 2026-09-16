@@ -24,7 +24,7 @@ export function TasteView({
 }) {
   if (loading)
     return (
-      <div className="mx-auto h-[560px] max-w-4xl animate-pulse rounded-sm bg-card" />
+      <div className="mx-auto h-[560px] max-w-5xl animate-pulse rounded-sm bg-card" />
     );
   if (profile.overallAverage === null) {
     return (
@@ -47,7 +47,7 @@ export function TasteView({
   }
 
   return (
-    <section className="mx-auto max-w-4xl">
+    <section className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Your story compass</p>
