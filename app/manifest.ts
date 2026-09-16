@@ -14,8 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: appRoot,
     display: 'standalone',
     orientation: 'portrait-primary',
-    background_color: '#0b1519',
-    theme_color: '#0b1519',
+    background_color: '#050f10',
+    theme_color: '#050f10',
     categories: ['books', 'lifestyle'],
     icons: [
       {

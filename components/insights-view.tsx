@@ -43,10 +43,9 @@ export function InsightsView({
     <div>
       <nav
         aria-label="Insights sections"
-        className="mx-auto mb-6 flex w-fit max-w-full gap-1 overflow-x-auto rounded-2xl border border-border bg-card/80 p-1"
+        className="mb-8 flex max-w-full gap-6 overflow-x-auto border-b border-border"
       >
         {sections.map((item) => {
-          const Icon = item.icon;
           const active = section === item.id;
           return (
             <button
@@ -54,13 +53,19 @@ export function InsightsView({
               type="button"
               aria-pressed={active}
               onClick={() => setSection(item.id)}
-              className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-xs font-medium transition-colors ${
+              className={`relative flex min-h-11 shrink-0 items-center text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/55 focus-visible:outline-none ${
                 active
-                  ? 'bg-primary-muted text-primary'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  ? 'text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Icon className="size-4" /> {item.label}
+              {item.label}
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="bg-primary absolute inset-x-0 -bottom-px h-px rounded-full"
+                />
+              )}
             </button>
           );
         })}
