@@ -13,7 +13,13 @@ describe('PWA assets', () => {
       path.join(process.cwd(), 'public/sw.js'),
       'utf8',
     );
-    expect(worker).toContain('next-chapter-shell-v3');
+    // Pinning the exact version made a routine cache bump fail the build, so
+    // assert the shape instead: a versioned name is what lets `activate` tell
+    // the current shell from the stale ones it deletes.
+    expect(worker).toMatch(/const CACHE_NAME = 'next-chapter-shell-v\d+';/);
+    // The offline path must answer with a real response rather than undefined.
+    expect(worker).toContain('function isCacheable');
+    expect(worker).toContain('offlineResponse');
   });
 
   it('includes persistent light and dark theme controls', async () => {

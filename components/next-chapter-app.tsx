@@ -15,6 +15,7 @@ import { ImportDialog } from '@/components/import-dialog';
 import { InsightsView } from '@/components/insights-view';
 import { LibraryView } from '@/components/library-view';
 import { NextReadView } from '@/components/next-read-view';
+import { ViewErrorBoundary } from '@/components/view-error-boundary';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   clearLocalLibrary,
@@ -58,6 +59,7 @@ export function NextChapterApp() {
   const [loading, setLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [announcement, setAnnouncement] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const profile = useMemo(
     () => buildTasteProfile(snapshot.books, snapshot.bookMetadata),
     [snapshot.books, snapshot.bookMetadata],
@@ -68,17 +70,41 @@ export function NextChapterApp() {
     setLoading(false);
   }, []);
 
+  // Browser storage can be unavailable entirely (private browsing, evicted
+  // data, a blocked upgrade). Without this the loading flag was never cleared
+  // and every view showed its skeleton forever.
+  const reportLoadFailure = useCallback((error: unknown) => {
+    console.error('[Next Chapter] could not open the local library', error);
+    setLoadError(
+      error instanceof Error
+        ? error.message
+        : 'Next Chapter could not open its local storage in this browser.',
+    );
+    setLoading(false);
+  }, []);
+
+  function retryLoad() {
+    setLoadError(null);
+    setLoading(true);
+    void refresh().catch(reportLoadFailure);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    void getLibrarySnapshot().then((next) => {
-      if (cancelled) return;
-      setSnapshot(next);
-      setLoading(false);
-    });
+    void getLibrarySnapshot()
+      .then((next) => {
+        if (cancelled) return;
+        setSnapshot(next);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        reportLoadFailure(error);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reportLoadFailure]);
 
   function changeView(next: View) {
     setView(next);
@@ -231,48 +257,81 @@ export function NextChapterApp() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl px-5 pt-8 pb-[calc(env(safe-area-inset-bottom)+6.5rem)] sm:px-8 sm:pt-12 sm:pb-16 lg:px-10">
-        {view === 'next' && (
-          <NextReadView
-            books={snapshot.books}
-            metadata={snapshot.bookMetadata}
-            profile={profile}
-            feedback={snapshot.recommendationFeedback}
-            loading={loading}
-            onImport={() => setImportOpen(true)}
-            onFeedback={handleRecommendationFeedback}
-            onResetFeedback={handleRecommendationFeedbackReset}
-          />
+        {loadError && (
+          <div
+            role="alert"
+            className="border-destructive/35 bg-destructive/10 rounded-xl border p-5 sm:p-6"
+          >
+            <h2 className="text-xl font-semibold">
+              Next Chapter could not open your local library
+            </h2>
+            <p className="text-muted-foreground mt-2 text-sm leading-6">
+              This browser blocked or could not read the storage Next Chapter
+              uses. Private browsing windows and cleared site data are the usual
+              causes. Your Goodreads account is unaffected.
+            </p>
+            <p className="text-destructive mt-3 text-xs leading-5">
+              {loadError}
+            </p>
+            <button
+              type="button"
+              onClick={retryLoad}
+              className="bg-primary text-primary-foreground mt-4 inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-semibold"
+            >
+              Try again
+            </button>
+          </div>
         )}
-        {view === 'library' && (
-          <LibraryView
-            books={snapshot.books}
-            metadata={snapshot.bookMetadata}
-            loading={loading}
-            onImport={() => setImportOpen(true)}
-          />
+        {!loadError && view === 'next' && (
+          <ViewErrorBoundary name="Next read">
+            <NextReadView
+              books={snapshot.books}
+              metadata={snapshot.bookMetadata}
+              profile={profile}
+              feedback={snapshot.recommendationFeedback}
+              loading={loading}
+              onImport={() => setImportOpen(true)}
+              onFeedback={handleRecommendationFeedback}
+              onResetFeedback={handleRecommendationFeedbackReset}
+            />
+          </ViewErrorBoundary>
         )}
-        {view === 'insights' && (
-          <InsightsView
-            books={snapshot.books}
-            metadata={snapshot.bookMetadata}
-            profile={profile}
-            rankingOrder={snapshot.rankingOrder}
-            loading={loading}
-            onImport={() => setImportOpen(true)}
-            onRankingOrderChange={handleRankingOrderChange}
-          />
+        {!loadError && view === 'library' && (
+          <ViewErrorBoundary name="Library">
+            <LibraryView
+              books={snapshot.books}
+              metadata={snapshot.bookMetadata}
+              loading={loading}
+              onImport={() => setImportOpen(true)}
+            />
+          </ViewErrorBoundary>
         )}
-        {view === 'data' && (
-          <DataView
-            snapshot={snapshot}
-            loading={loading}
-            onImport={() => setImportOpen(true)}
-            onDownloadBackup={downloadBackup}
-            onRestoreBackup={handleRestore}
-            onImportMetadata={handleMetadataImport}
-            onSaveMetadata={handleMetadataSave}
-            onClear={clearData}
-          />
+        {!loadError && view === 'insights' && (
+          <ViewErrorBoundary name="Insights">
+            <InsightsView
+              books={snapshot.books}
+              metadata={snapshot.bookMetadata}
+              profile={profile}
+              rankingOrder={snapshot.rankingOrder}
+              loading={loading}
+              onImport={() => setImportOpen(true)}
+              onRankingOrderChange={handleRankingOrderChange}
+            />
+          </ViewErrorBoundary>
+        )}
+        {!loadError && view === 'data' && (
+          <ViewErrorBoundary name="Settings & data">
+            <DataView
+              snapshot={snapshot}
+              loading={loading}
+              onImport={() => setImportOpen(true)}
+              onDownloadBackup={downloadBackup}
+              onRestoreBackup={handleRestore}
+              onImportMetadata={handleMetadataImport}
+              onSaveMetadata={handleMetadataSave}
+              onClear={clearData}
+            />
+          </ViewErrorBoundary>
         )}
       </main>
 
