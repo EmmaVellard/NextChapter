@@ -107,7 +107,7 @@ export function NextReadView({
 
   if (loading) {
     return (
-      <div className="mx-auto h-[620px] max-w-5xl animate-pulse rounded-[2rem] bg-card" />
+      <div className="mx-auto h-[620px] max-w-5xl animate-pulse rounded-sm bg-card" />
     );
   }
 
@@ -452,7 +452,7 @@ export function NextReadView({
           />
         )}
         {recommendations.length === 0 && !surprise && history.length > 0 && (
-          <p className="mt-8 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          <p className="mt-8 border-t border-border py-5 text-sm text-muted-foreground">
             No books match those constraints yet. Try another genre or length,
             or update your Goodreads export.
           </p>
@@ -608,7 +608,7 @@ function RecommendationCard({
     details?.firstPublishYear;
   const genres = genresForBook(book, metadata).slice(0, 2);
   return (
-    <article className="overflow-hidden rounded-[1.75rem] border border-border bg-card p-4">
+    <article className="group overflow-hidden border-b border-border pb-4">
       <div className="grid grid-cols-[7.5rem_1fr] gap-4 md:block">
         <BookCover
           title={book.title}

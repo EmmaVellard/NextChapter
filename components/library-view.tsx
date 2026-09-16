@@ -48,16 +48,14 @@ export function LibraryView({
   const visibleBooks = toRead.slice(0, visibleCount);
 
   if (loading)
-    return <div className="h-[560px] animate-pulse rounded-[2rem] bg-card" />;
+    return <div className="h-[560px] animate-pulse rounded-sm bg-card" />;
   if (books.filter(isToRead).length === 0) {
     return (
       <section className="mx-auto max-w-xl pt-10 text-center sm:pt-20">
         <span className="mx-auto grid size-13 place-items-center rounded-2xl bg-primary-muted text-primary">
           <BookMarked className="size-5" />
         </span>
-        <h1 className="editorial-title mt-5">
-          Your to-read shelf
-        </h1>
+        <h1 className="editorial-title mt-5">Your to-read shelf</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
           Import a Goodreads library with books on the to-read shelf.
         </p>
@@ -72,12 +70,8 @@ export function LibraryView({
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">
-            Recommendation pool
-          </p>
-          <h1 className="editorial-title mt-2">
-            To read
-          </h1>
+          <p className="eyebrow">Recommendation pool</p>
+          <h1 className="editorial-title mt-2">To read</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
             {books.filter(isToRead).length.toLocaleString()} books from your
             Goodreads shelf.
@@ -92,7 +86,7 @@ export function LibraryView({
         </Button>
       </div>
 
-      <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row">
+      <div className="mt-8 flex flex-col gap-3 border-y border-border py-4 sm:flex-row">
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-background/35 px-3">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <span className="sr-only">Search books</span>
@@ -116,7 +110,7 @@ export function LibraryView({
       </div>
 
       {toRead.length === 0 ? (
-        <p className="mt-8 rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+        <p className="mt-8 border-t border-border py-6 text-center text-sm text-muted-foreground">
           No title or author matches “{query}”.
         </p>
       ) : (
@@ -133,7 +127,7 @@ export function LibraryView({
             return (
               <article
                 key={book.id}
-                className="grid grid-cols-[5.5rem_1fr] gap-4 rounded-2xl border border-border bg-card p-3"
+                className="grid grid-cols-[5.5rem_1fr] gap-4 border-b border-border py-4"
               >
                 <BookCover
                   title={book.title}

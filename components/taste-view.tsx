@@ -24,7 +24,7 @@ export function TasteView({
 }) {
   if (loading)
     return (
-      <div className="mx-auto h-[560px] max-w-4xl animate-pulse rounded-[2rem] bg-card" />
+      <div className="mx-auto h-[560px] max-w-4xl animate-pulse rounded-sm bg-card" />
     );
   if (profile.overallAverage === null) {
     return (
@@ -50,9 +50,7 @@ export function TasteView({
     <section className="mx-auto max-w-4xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">
-            Your story compass
-          </p>
+          <p className="eyebrow">Your story compass</p>
           <h1 className="editorial-title mt-2 max-w-3xl">
             What makes a story work for you
           </h1>
@@ -70,32 +68,32 @@ export function TasteView({
         </Button>
       </div>
 
-      <article className="relative mt-8 overflow-hidden rounded-[2rem] border border-primary/25 bg-primary-muted/34 p-6 sm:p-8">
-        <div className="absolute -top-20 -right-16 size-56 rounded-full bg-primary/14 blur-3xl" />
-        <div className="relative flex items-start gap-4">
-          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-muted text-primary">
-            <Compass className="size-5" />
-          </span>
-          <div>
-            <p className="eyebrow">
-              At the heart of your taste
-            </p>
-            <p className="mt-3 max-w-3xl font-serif text-2xl leading-8 tracking-[-0.025em] text-foreground sm:text-[1.7rem] sm:leading-9">
-              {profile.readerSummary}
-            </p>
+      {/* buildTasteProfile joins an empty list into an empty string when a
+          library has ratings but no catalog subjects yet, which rendered this
+          panel as a blank coloured band. */}
+      {profile.readerSummary.trim() && (
+        <article className="relative mt-8 border-t-2 border-primary/30 bg-primary-muted/30 p-6 sm:p-8">
+          <div className="relative flex items-start gap-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-muted text-primary">
+              <Compass className="size-5" />
+            </span>
+            <div>
+              <p className="eyebrow">At the heart of your taste</p>
+              <p className="mt-3 max-w-3xl font-serif text-2xl leading-8 tracking-[-0.025em] text-foreground sm:text-[1.7rem] sm:leading-9">
+                {profile.readerSummary}
+              </p>
+            </div>
           </div>
-        </div>
-      </article>
+        </article>
+      )}
 
-      <article className="mt-4 rounded-[2rem] border border-border bg-card p-6 sm:p-7">
+      <article className="mt-8 border-t border-border py-6 sm:py-7">
         <div className="flex items-center gap-3">
           <span className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
             <Sparkles className="size-4" />
           </span>
           <div>
-            <p className="eyebrow">
-              Your ideal reading experience
-            </p>
+            <p className="eyebrow">Your ideal reading experience</p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
               The story you are looking for
             </h2>
@@ -111,7 +109,7 @@ export function TasteView({
           {profile.narrativeInsights.map((insight, index) => (
             <article
               key={insight.label}
-              className="rounded-[2rem] border border-border bg-card p-6"
+              className="border-t border-border py-6"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
@@ -137,13 +135,11 @@ export function TasteView({
       )}
 
       {profile.storyBalance.length > 0 && (
-        <article className="mt-4 rounded-[2rem] border border-border bg-card p-6 sm:p-7">
+        <article className="mt-8 border-t border-border py-6 sm:py-7">
           <div className="flex items-center gap-3">
             <Layers3 className="size-5 text-primary" />
             <div>
-              <p className="eyebrow">
-                The balance that works for you
-              </p>
+              <p className="eyebrow">The balance that works for you</p>
               <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
                 How your favorite elements fit together
               </h2>
@@ -163,10 +159,8 @@ export function TasteView({
       )}
 
       {profile.lessCompelling && (
-        <article className="mt-4 rounded-[2rem] border border-border bg-secondary/55 p-6 sm:p-7">
-          <p className="eyebrow">
-            Better as a supporting thread
-          </p>
+        <article className="mt-8 border-t border-border py-6 sm:py-7">
+          <p className="eyebrow">Better as a supporting thread</p>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
             {profile.lessCompelling}
           </p>
@@ -179,9 +173,7 @@ export function TasteView({
           <div className="flex items-center gap-3">
             <BarChart3 className="size-5 text-primary" />
             <div>
-              <p className="eyebrow">
-                Reading statistics
-              </p>
+              <p className="eyebrow">Reading statistics</p>
               <h2 className="mt-1 font-serif text-3xl tracking-[-0.04em]">
                 A few familiar landmarks
               </h2>
@@ -215,7 +207,7 @@ function TasteStats({
   signals: TasteSignal[];
 }) {
   return (
-    <article className="rounded-[2rem] border border-border bg-card p-6">
+    <article className="border-t border-border py-6">
       <div className="flex items-center gap-2">
         <Icon className="size-4 text-primary" />
         <h3 className="font-semibold">{title}</h3>

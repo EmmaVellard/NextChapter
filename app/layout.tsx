@@ -1,8 +1,33 @@
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 
 import './globals.css';
+
+// Fraunces is a soft serif for the display voice; Nunito's rounded terminals
+// keep small UI text gentle. Shared with Movie Companion so the two apps read as
+// one family.
+//
+// Vendored rather than pulled from next/font/google: that fetches at build time
+// and fails the production build outright when Google is unreachable, which
+// would break a deploy for reasons unrelated to the change. Refresh the files
+// with `node scripts/fetch-fonts.mjs`.
+const display = localFont({
+  src: '../public/fonts/fraunces-latin.woff2',
+  weight: '300 700',
+  display: 'swap',
+  variable: '--font-display',
+  fallback: ['Iowan Old Style', 'Baskerville', 'Times New Roman', 'serif'],
+});
+
+const body = localFont({
+  src: '../public/fonts/nunito-latin.woff2',
+  weight: '300 700',
+  display: 'swap',
+  variable: '--font-body',
+  fallback: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+});
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
@@ -58,7 +83,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

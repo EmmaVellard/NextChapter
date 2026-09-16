@@ -26,7 +26,7 @@ export function YearView({
 }) {
   if (loading) {
     return (
-      <div className="mx-auto h-[560px] max-w-5xl animate-pulse rounded-[2rem] bg-card" />
+      <div className="mx-auto h-[560px] max-w-5xl animate-pulse rounded-sm bg-card" />
     );
   }
 
@@ -38,9 +38,7 @@ export function YearView({
         <span className="mx-auto grid size-13 place-items-center rounded-2xl bg-primary-muted text-primary">
           <CalendarDays className="size-5" />
         </span>
-        <h1 className="editorial-title mt-5">
-          Your reading years
-        </h1>
+        <h1 className="editorial-title mt-5">Your reading years</h1>
         <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">
           Add “Date Read” values in Goodreads, then import a fresh export to
           build year-by-year summaries.
@@ -57,12 +55,8 @@ export function YearView({
     <section className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">
-            Reading history
-          </p>
-          <h1 className="editorial-title mt-2">
-            Your years in books
-          </h1>
+          <p className="eyebrow">Reading history</p>
+          <h1 className="editorial-title mt-2">Your years in books</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
             A yearly view built from Goodreads “Date Read,” with ratings, pages,
             authors, and catalog genres kept in context.
@@ -92,7 +86,7 @@ export function YearView({
       )}
 
       {undated > 0 && (
-        <p className="mt-4 rounded-2xl border border-border bg-card px-5 py-4 text-xs leading-5 text-muted-foreground">
+        <p className="mt-4 border-t border-border py-4 text-xs leading-5 text-muted-foreground">
           {undated.toLocaleString()} read{' '}
           {undated === 1 ? 'book has' : 'books have'} no “Date Read” in the
           export, so {undated === 1 ? 'it is' : 'they are'} not assigned to a
@@ -119,13 +113,12 @@ function YearCard({
   return (
     <article
       className={cn(
-        'relative overflow-hidden rounded-[2rem] border bg-card p-6',
-        featured ? 'mt-8 border-primary/25 sm:p-8' : 'border-border',
+        'relative overflow-hidden border-t py-6',
+        featured
+          ? 'mt-8 border-t-2 border-primary/30 sm:py-8'
+          : 'border-border',
       )}
     >
-      {featured && (
-        <div className="pointer-events-none absolute -top-28 right-8 size-64 rounded-full bg-primary/12 blur-3xl" />
-      )}
       <div className="relative flex items-start justify-between gap-4">
         <div>
           <p className="eyebrow">
@@ -200,7 +193,7 @@ function YearCard({
       </div>
 
       {longest && longestPages && (
-        <div className="relative mt-6 grid grid-cols-[3.5rem_1fr] gap-3 rounded-2xl border border-border bg-background/30 p-3">
+        <div className="relative mt-6 grid grid-cols-[3.5rem_1fr] gap-3 border-b border-border py-3">
           <BookCover
             title={longest.title}
             author={longest.author}
@@ -273,7 +266,7 @@ function YearCard({
 
 function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-background/28 p-4">
+    <div className="border-t border-border py-4">
       <p className="text-2xl font-semibold tracking-[-0.04em]">{value}</p>
       <p className="mt-1 text-[0.68rem] leading-4 text-muted-foreground">
         {label}

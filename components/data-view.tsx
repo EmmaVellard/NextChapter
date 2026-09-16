@@ -251,12 +251,8 @@ export function DataView({
 
   return (
     <section className="mx-auto max-w-4xl">
-      <p className="eyebrow">
-        Private by design
-      </p>
-      <h1 className="editorial-title mt-2">
-        Your data
-      </h1>
+      <p className="eyebrow">Private by design</p>
+      <h1 className="editorial-title mt-2">Your data</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
         Goodreads stays your source of truth. This app keeps a local reading
         copy and never changes your Goodreads account.
@@ -264,10 +260,7 @@ export function DataView({
 
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {metrics.map(({ label, value, icon: Icon }) => (
-          <article
-            key={label}
-            className="rounded-2xl border border-border bg-card p-4"
-          >
+          <article key={label} className="border-t border-border py-4">
             <Icon className="size-4 text-primary" aria-hidden="true" />
             <p className="mt-5 text-2xl font-semibold tracking-[-0.04em]">
               {loading ? '—' : value.toLocaleString()}
@@ -277,12 +270,10 @@ export function DataView({
         ))}
       </div>
 
-      <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
+      <article className="mt-8 border-t border-border py-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="eyebrow">
-              Goodreads import
-            </p>
+            <p className="eyebrow">Goodreads import</p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
               One file, your whole library
             </h2>
@@ -315,12 +306,10 @@ export function DataView({
         </a>
       </article>
 
-      <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
+      <article className="mt-8 border-t border-border py-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="eyebrow">
-              Covers, genres & synopses
-            </p>
+            <p className="eyebrow">Covers, genres & synopses</p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
               Find book details as you need them
             </h2>
@@ -379,12 +368,10 @@ export function DataView({
         </div>
       </article>
 
-      <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
+      <article className="mt-8 border-t border-border py-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="eyebrow">
-              Direct book search
-            </p>
+            <p className="eyebrow">Direct book search</p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
               Fix missing book details
             </h2>
@@ -472,7 +459,7 @@ export function DataView({
         )}
       </article>
 
-      <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
+      <article className="mt-8 border-t border-border py-6">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-muted text-primary">
             <LockKeyhole className="size-4" />
@@ -490,10 +477,8 @@ export function DataView({
         </div>
       </article>
 
-      <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
-        <p className="eyebrow">
-          Backup & restore
-        </p>
+      <article className="mt-8 border-t border-border py-6">
+        <p className="eyebrow">Backup & restore</p>
         <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
           Keep a portable copy
         </h2>
@@ -528,7 +513,7 @@ export function DataView({
         </div>
       </article>
 
-      <article className="mt-4 rounded-[2rem] border border-destructive/25 bg-card p-6">
+      <article className="mt-8 border-t-2 border-destructive/30 bg-destructive/8 p-6">
         <p className="text-xs font-semibold tracking-[0.13em] text-destructive uppercase">
           Local reset
         </p>

@@ -232,10 +232,8 @@ export function NextChapterApp() {
             className="flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/55"
             onClick={() => changeView('next')}
           >
-            <span className="grid size-9 place-items-center rounded-xl bg-[linear-gradient(145deg,#73d8c1,#4a83c4)] text-[#071f22] shadow-[0_8px_28px_rgba(70,199,174,0.22)]">
-              <BookOpen className="size-4" />
-            </span>
-            <span className="whitespace-nowrap font-serif text-lg font-semibold tracking-[-0.025em]">
+            <BookOpen className="size-7 text-primary" aria-hidden="true" />
+            <span className="whitespace-nowrap font-serif text-lg tracking-[-0.025em]">
               Next Chapter
             </span>
           </button>

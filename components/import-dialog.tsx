@@ -198,7 +198,7 @@ export function ImportDialog({
         ) : (
           <button
             type="button"
-            className={`w-full rounded-[1.5rem] border border-dashed p-8 text-center transition-colors ${dragActive ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/45 hover:bg-primary/5'}`}
+            className={`w-full rounded-lg border border-dashed p-8 text-center transition-colors ${dragActive ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/45 hover:bg-primary/5'}`}
             onClick={() => inputRef.current?.click()}
             onDragEnter={(event) => {
               event.preventDefault();

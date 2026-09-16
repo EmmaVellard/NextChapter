@@ -76,7 +76,7 @@ export function RankingView({
 
   if (loading) {
     return (
-      <div className="mx-auto h-[620px] max-w-4xl animate-pulse rounded-[2rem] bg-card" />
+      <div className="mx-auto h-[620px] max-w-4xl animate-pulse rounded-sm bg-card" />
     );
   }
 
@@ -84,12 +84,8 @@ export function RankingView({
     <section className="mx-auto max-w-4xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">
-            Personal leaderboard
-          </p>
-          <h1 className="editorial-title mt-2">
-            Your book ranking
-          </h1>
+          <p className="eyebrow">Personal leaderboard</p>
+          <h1 className="editorial-title mt-2">Your book ranking</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
             Start with your ratings, then use the arrows to make the order your
             own. The Goodreads average only breaks ties in the default order.
@@ -104,7 +100,7 @@ export function RankingView({
         </Button>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-y border-border py-4">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <Trophy className="size-4 text-primary" />
@@ -147,7 +143,7 @@ export function RankingView({
       </div>
 
       {visible.length === 0 ? (
-        <p className="mt-4 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+        <p className="mt-4 border-t border-border py-6 text-sm text-muted-foreground">
           No rated finished books are available for this period. Add ratings in
           Goodreads and import a fresh export.
         </p>
@@ -158,7 +154,7 @@ export function RankingView({
             return (
               <article
                 key={book.id}
-                className="grid grid-cols-[2.5rem_3.5rem_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border bg-card p-3 sm:grid-cols-[3rem_4rem_minmax(0,1fr)_auto] sm:gap-4"
+                className="grid grid-cols-[2.5rem_3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-border py-3 sm:grid-cols-[3rem_4rem_minmax(0,1fr)_auto] sm:gap-4"
               >
                 <p className="text-center font-serif text-2xl text-primary">
                   {index + 1}
