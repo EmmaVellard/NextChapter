@@ -42,6 +42,32 @@ const initialContext: ReadingContext = {
   discovery: 'balanced',
 };
 
+const surpriseModes: Array<{
+  value: SurpriseMode;
+  label: string;
+  description: string;
+  icon: typeof BookHeart;
+}> = [
+  {
+    value: 'safe',
+    label: 'Safe pick',
+    description: 'Closest to what you already rate highly.',
+    icon: BookHeart,
+  },
+  {
+    value: 'hidden-gem',
+    label: 'Hidden gem',
+    description: 'Well matched, but little read and rarely surfaced.',
+    icon: Flame,
+  },
+  {
+    value: 'wildcard',
+    label: 'Wildcard',
+    description: 'Deliberately outside your usual shelf.',
+    icon: Compass,
+  },
+];
+
 export function NextReadView({
   books,
   metadata,
@@ -91,12 +117,8 @@ export function NextReadView({
         <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-primary-muted text-primary">
           <BookOpenCheck className="size-6" aria-hidden="true" />
         </span>
-        <p className="mt-6 text-xs font-semibold tracking-[0.16em] text-primary uppercase">
-          Your next chapter
-        </p>
-        <h1 className="mt-2 font-serif text-5xl leading-none tracking-[-0.05em] sm:text-6xl">
-          What should I read?
-        </h1>
+        <p className="mt-6 eyebrow">Your next chapter</p>
+        <h1 className="editorial-title mt-2">What should I read?</h1>
         <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-muted-foreground">
           Import your Goodreads library and Next Chapter will choose from the
           books already waiting on your to-read shelf.
@@ -249,8 +271,7 @@ export function NextReadView({
         </p>
       </section>
 
-      <section className="relative mt-9 overflow-hidden rounded-[2rem] border border-border bg-card/90 p-5 shadow-[0_30px_100px_rgba(0,0,0,0.28)] sm:p-7">
-        <div className="pointer-events-none absolute inset-x-20 -top-32 h-56 rounded-full bg-primary/13 blur-3xl" />
+      <section className="relative mt-9 border-t border-border pt-7">
         <div className="relative space-y-7">
           <FilterGroup
             label="Genre"
@@ -357,39 +378,34 @@ export function NextReadView({
         </div>
       </section>
 
-      <section className="mt-4 rounded-[1.75rem] border border-border bg-card/55 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.12em] text-primary uppercase">
-              No filters, one answer
-            </p>
-            <h2 className="mt-1 text-lg font-semibold tracking-[-0.025em]">
-              Surprise me
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              className="h-10 rounded-xl"
-              onClick={() => runSurprise('safe')}
-            >
-              <BookHeart /> Safe pick
-            </Button>
-            <Button
-              variant="outline"
-              className="h-10 rounded-xl"
-              onClick={() => runSurprise('hidden-gem')}
-            >
-              <Flame /> Hidden gem
-            </Button>
-            <Button
-              variant="outline"
-              className="h-10 rounded-xl"
-              onClick={() => runSurprise('wildcard')}
-            >
-              <Compass /> Wildcard
-            </Button>
-          </div>
+      <section className="mt-10">
+        <p className="eyebrow">No filters, one answer</p>
+        <h2 className="mt-1 font-serif text-2xl tracking-[-0.03em]">
+          Surprise me
+        </h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {surpriseModes.map((mode) => {
+            const Icon = mode.icon;
+            return (
+              <button
+                key={mode.value}
+                type="button"
+                onClick={() => runSurprise(mode.value)}
+                className="surprise-choice group min-h-32 border-t px-1 py-5 text-left transition-colors focus-visible:ring-3 focus-visible:ring-ring/55 focus-visible:outline-none"
+              >
+                <Icon
+                  className="surprise-icon size-5 text-primary"
+                  aria-hidden="true"
+                />
+                <span className="surprise-label mt-4 block font-serif text-2xl">
+                  {mode.label}
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                  {mode.description}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -464,7 +480,11 @@ function FilterGroup({
         <h2 className="text-sm font-semibold">{label}</h2>
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">{children}</div>
+      <div
+        className={`mt-3 flex flex-wrap gap-x-5 gap-y-1 ${label === 'Genre' ? 'shelf-choices' : ''}`}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -483,7 +503,7 @@ function ChoiceChip({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`rounded-full border px-3.5 py-2 text-sm font-medium transition-all ${selected ? 'border-primary/55 bg-primary-muted text-primary' : 'border-border bg-background/35 text-muted-foreground hover:border-primary/35 hover:text-foreground'}`}
+      className={`editorial-choice min-h-11 px-0.5 py-2 transition-colors focus-visible:ring-3 focus-visible:ring-ring/55 focus-visible:outline-none ${selected ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
     >
       {children}
     </button>
@@ -518,9 +538,7 @@ function Results({
     <section className="mt-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
-            Your shortlist
-          </p>
+          <p className="eyebrow">Your shortlist</p>
           <h2 className="mt-1 font-serif text-4xl tracking-[-0.045em]">
             {title}
           </h2>
@@ -636,9 +654,7 @@ function RecommendationCard({
             {publicationYear && <span>{publicationYear}</span>}
           </div>
           <div className="mt-4 border-t border-border pt-4">
-            <p className="text-[0.68rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-              Tune your next picks
-            </p>
+            <p className="eyebrow">Tune your next picks</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Button
                 variant="outline"

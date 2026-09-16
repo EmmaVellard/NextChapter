@@ -55,7 +55,7 @@ export function LibraryView({
         <span className="mx-auto grid size-13 place-items-center rounded-2xl bg-primary-muted text-primary">
           <BookMarked className="size-5" />
         </span>
-        <h1 className="mt-5 font-serif text-5xl tracking-[-0.05em]">
+        <h1 className="editorial-title mt-5">
           Your to-read shelf
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
@@ -72,10 +72,10 @@ export function LibraryView({
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+          <p className="eyebrow">
             Recommendation pool
           </p>
-          <h1 className="mt-2 font-serif text-5xl tracking-[-0.055em] sm:text-6xl">
+          <h1 className="editorial-title mt-2">
             To read
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">

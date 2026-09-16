@@ -44,8 +44,10 @@
   --card-foreground: oklch(0.23 0.025 218);
   --popover: oklch(0.995 0.008 82);
   --popover-foreground: oklch(0.23 0.025 218);
-  --primary: oklch(0.49 0.115 180);
-  --primary-hover: oklch(0.43 0.125 181);
+  /* Solid fills stay deep enough for white text to clear AA; the colour lives
+     in the muted washes rather than in the elements carrying labels. */
+  --primary: oklch(0.46 0.12 180);
+  --primary-hover: oklch(0.4 0.125 181);
   --primary-muted: oklch(0.9 0.048 178);
   --primary-foreground: oklch(0.985 0.008 180);
   --secondary: oklch(0.925 0.018 82);
@@ -64,10 +66,16 @@
   --spine-light: rgba(255, 255, 255, 0.28);
   --spine-dark: rgba(48, 42, 31, 0.18);
   --spine-shadow: rgba(41, 54, 53, 0.16);
-  --radius: 0.82rem;
+  /* A warm counterweight to the teal: it carries the eyebrows and the selected
+     underline, so the accent never has to sit under white text. */
+  --amber-wash: oklch(0.93 0.035 75);
+  --amber-ink: oklch(0.48 0.1 62);
+  --radius: 0.25rem;
 }
 
 .dark {
+  --amber-wash: oklch(0.26 0.035 72);
+  --amber-ink: oklch(0.82 0.085 78);
   color-scheme: dark;
   --background: oklch(0.145 0.018 220);
   --foreground: oklch(0.965 0.012 190);
@@ -151,4 +159,96 @@
 
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Open, editorial controls: colour and a persistent underline communicate the
+   selection without enclosing every option in another pill. */
+@layer components {
+  .editorial-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2.6rem, 5.6vw, 4.4rem);
+    font-weight: 400;
+    line-height: 1.04;
+    letter-spacing: -0.05em;
+    text-wrap: balance;
+  }
+
+  .eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber-ink);
+  }
+
+  .editorial-choice {
+    position: relative;
+    border-radius: 2px;
+    background: transparent;
+  }
+
+  .editorial-choice::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0.125rem;
+    bottom: 0.3rem;
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 160ms ease;
+  }
+
+  .editorial-choice[aria-pressed='true']::after {
+    transform: scaleX(1);
+  }
+
+  /* Sized here rather than with a text-* utility: Tailwind's utilities layer
+     wins over this one, so a utility in the markup would silently defeat the
+     serif treatment below. */
+  .editorial-choice {
+    font-size: 0.875rem;
+  }
+
+  .shelf-choices .editorial-choice {
+    font-family: var(--font-serif);
+    font-size: clamp(1.15rem, 2.3vw, 1.45rem);
+    line-height: 1.5;
+  }
+
+  .surprise-choice {
+    border-top-color: var(--border);
+  }
+
+  .surprise-choice:hover {
+    border-top-color: var(--primary);
+    background: linear-gradient(180deg, var(--primary-muted), transparent);
+  }
+
+  .surprise-label,
+  .surprise-icon {
+    color: var(--primary);
+  }
+
+  /* The middle option carries the warm accent so the three are told apart by
+     colour rather than by three identical frames. */
+  .surprise-choice:nth-child(2) {
+    border-top-color: color-mix(in oklch, var(--amber-ink), transparent 60%);
+  }
+
+  .surprise-choice:nth-child(2):hover {
+    border-top-color: var(--amber-ink);
+    background: linear-gradient(180deg, var(--amber-wash), transparent);
+  }
+
+  .surprise-choice:nth-child(2) .surprise-label,
+  .surprise-choice:nth-child(2) .surprise-icon {
+    color: var(--amber-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .editorial-choice::after {
+      transition: none;
+    }
+  }
 }

@@ -38,7 +38,7 @@ export function YearView({
         <span className="mx-auto grid size-13 place-items-center rounded-2xl bg-primary-muted text-primary">
           <CalendarDays className="size-5" />
         </span>
-        <h1 className="mt-5 font-serif text-5xl tracking-[-0.05em]">
+        <h1 className="editorial-title mt-5">
           Your reading years
         </h1>
         <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">
@@ -57,10 +57,10 @@ export function YearView({
     <section className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+          <p className="eyebrow">
             Reading history
           </p>
-          <h1 className="mt-2 font-serif text-5xl tracking-[-0.055em] sm:text-6xl">
+          <h1 className="editorial-title mt-2">
             Your years in books
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -128,7 +128,7 @@ function YearCard({
       )}
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+          <p className="eyebrow">
             {featured ? 'Latest chapter' : 'Reading year'}
           </p>
           <h2 className="mt-1 font-serif text-6xl tracking-[-0.065em]">

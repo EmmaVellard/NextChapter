@@ -251,10 +251,10 @@ export function DataView({
 
   return (
     <section className="mx-auto max-w-4xl">
-      <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+      <p className="eyebrow">
         Private by design
       </p>
-      <h1 className="mt-2 font-serif text-5xl tracking-[-0.055em] sm:text-6xl">
+      <h1 className="editorial-title mt-2">
         Your data
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -280,7 +280,7 @@ export function DataView({
       <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+            <p className="eyebrow">
               Goodreads import
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
@@ -318,7 +318,7 @@ export function DataView({
       <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+            <p className="eyebrow">
               Covers, genres & synopses
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
@@ -382,7 +382,7 @@ export function DataView({
       <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+            <p className="eyebrow">
               Direct book search
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
@@ -491,7 +491,7 @@ export function DataView({
       </article>
 
       <article className="mt-4 rounded-[2rem] border border-border bg-card p-6">
-        <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+        <p className="eyebrow">
           Backup & restore
         </p>
         <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">

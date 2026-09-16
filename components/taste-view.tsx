@@ -32,7 +32,7 @@ export function TasteView({
         <span className="mx-auto grid size-13 place-items-center rounded-2xl bg-primary-muted text-primary">
           <Compass className="size-5" />
         </span>
-        <h1 className="mt-5 font-serif text-5xl tracking-[-0.05em]">
+        <h1 className="editorial-title mt-5">
           Your story compass starts with a few favorites
         </h1>
         <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">
@@ -50,10 +50,10 @@ export function TasteView({
     <section className="mx-auto max-w-4xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+          <p className="eyebrow">
             Your story compass
           </p>
-          <h1 className="mt-2 max-w-3xl font-serif text-5xl tracking-[-0.055em] sm:text-6xl">
+          <h1 className="editorial-title mt-2 max-w-3xl">
             What makes a story work for you
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -77,7 +77,7 @@ export function TasteView({
             <Compass className="size-5" />
           </span>
           <div>
-            <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+            <p className="eyebrow">
               At the heart of your taste
             </p>
             <p className="mt-3 max-w-3xl font-serif text-2xl leading-8 tracking-[-0.025em] text-foreground sm:text-[1.7rem] sm:leading-9">
@@ -93,7 +93,7 @@ export function TasteView({
             <Sparkles className="size-4" />
           </span>
           <div>
-            <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+            <p className="eyebrow">
               Your ideal reading experience
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
@@ -141,7 +141,7 @@ export function TasteView({
           <div className="flex items-center gap-3">
             <Layers3 className="size-5 text-primary" />
             <div>
-              <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+              <p className="eyebrow">
                 The balance that works for you
               </p>
               <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
@@ -164,7 +164,7 @@ export function TasteView({
 
       {profile.lessCompelling && (
         <article className="mt-4 rounded-[2rem] border border-border bg-secondary/55 p-6 sm:p-7">
-          <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+          <p className="eyebrow">
             Better as a supporting thread
           </p>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
@@ -179,7 +179,7 @@ export function TasteView({
           <div className="flex items-center gap-3">
             <BarChart3 className="size-5 text-primary" />
             <div>
-              <p className="text-xs font-semibold tracking-[0.13em] text-primary uppercase">
+              <p className="eyebrow">
                 Reading statistics
               </p>
               <h2 className="mt-1 font-serif text-3xl tracking-[-0.04em]">
