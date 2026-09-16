@@ -238,12 +238,13 @@ export function NextChapterApp() {
             </span>
           </button>
 
+          {/* Text with a quiet underline rather than a row of pills: the boxes
+              competed with the content for attention. */}
           <nav
-            className="hidden items-center rounded-xl border border-border bg-card/75 p-1 md:flex"
+            className="hidden items-center gap-6 md:flex"
             aria-label="Primary navigation"
           >
             {navigation.map((item) => {
-              const Icon = item.icon;
               const active = view === item.id;
               return (
                 <button
@@ -251,10 +252,19 @@ export function NextChapterApp() {
                   type="button"
                   aria-current={active ? 'page' : undefined}
                   onClick={() => changeView(item.id)}
-                  className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/55 ${active ? 'bg-primary-muted text-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'}`}
+                  className={`relative flex min-h-11 items-center text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/55 focus-visible:outline-none ${
+                    active
+                      ? 'text-foreground font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <Icon className="size-3.5" />
                   {item.label}
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="bg-primary absolute inset-x-0 -bottom-0.5 h-px rounded-full"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -357,10 +367,21 @@ export function NextChapterApp() {
                 type="button"
                 aria-current={active ? 'page' : undefined}
                 onClick={() => changeView(item.id)}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-medium transition-colors ${active ? 'bg-primary-muted text-primary' : 'text-muted-foreground'}`}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] transition-colors focus-visible:ring-3 focus-visible:ring-ring/55 focus-visible:outline-none ${
+                  active
+                    ? 'text-primary font-semibold'
+                    : 'text-muted-foreground'
+                }`}
               >
-                <Icon className="size-4" />
+                <Icon className="size-4" aria-hidden="true" />
                 {item.label}
+                {/* A small dot instead of a filled tile behind the whole item. */}
+                <span
+                  aria-hidden="true"
+                  className={`size-1 rounded-full transition-colors ${
+                    active ? 'bg-primary' : 'bg-transparent'
+                  }`}
+                />
               </button>
             );
           })}

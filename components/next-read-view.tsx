@@ -8,7 +8,6 @@ import {
   BookOpenCheck,
   Clock3,
   Compass,
-  Feather,
   Flame,
   Sparkles,
   Tags,
@@ -258,20 +257,17 @@ export function NextReadView({
 
   return (
     <div className="mx-auto max-w-5xl">
-      <section className="text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary-muted/70 px-3 py-1.5 text-xs font-semibold tracking-[0.13em] text-primary uppercase">
-          <Feather className="size-3.5" aria-hidden="true" />
-          Your next chapter
-        </div>
-        <h1 className="font-serif text-[clamp(3.3rem,9vw,6.7rem)] leading-[0.86] tracking-[-0.065em] text-balance">
-          What should I read?
+      <section className="next-read-intro">
+        <p className="eyebrow">Your next chapter</p>
+        <h1 className="editorial-title mt-3">
+          What should I <span className="text-primary">read?</span>
         </h1>
-        <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
           A short path from an endless shelf to three books that fit right now.
         </p>
       </section>
 
-      <section className="relative mt-9 border-t border-border pt-7">
+      <section className="relative mt-8 border-y border-border py-6 sm:py-8">
         <div className="relative space-y-7">
           <FilterGroup
             label="Genre"
