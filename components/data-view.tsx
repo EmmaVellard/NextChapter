@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import {
   BookCheck,
   BookMarked,
+  CircleStop,
   Download,
   ExternalLink,
   HardDrive,
@@ -11,6 +12,7 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Sparkles,
   Trash2,
   Upload,
 } from 'lucide-react';
@@ -23,6 +25,7 @@ import type {
   BookMetadata,
   LibrarySnapshot,
   MetadataImportSummary,
+  MetadataProgress,
 } from '@/lib/types';
 
 function formatDate(value: string | null) {
@@ -68,6 +71,10 @@ export function DataView({
   onRestoreBackup,
   onImportMetadata,
   onSaveMetadata,
+  onEnrich,
+  onStopEnrich,
+  enriching,
+  enrichProgress,
   onClear,
 }: {
   snapshot: LibrarySnapshot;
@@ -77,6 +84,10 @@ export function DataView({
   onRestoreBackup: (file: File) => Promise<void>;
   onImportMetadata: (file: File) => Promise<MetadataImportSummary>;
   onSaveMetadata: (entry: BookMetadata) => Promise<void>;
+  onEnrich: () => Promise<void>;
+  onStopEnrich: () => void;
+  enriching: boolean;
+  enrichProgress: MetadataProgress | null;
   onClear: () => Promise<void>;
 }) {
   const restoreRef = useRef<HTMLInputElement>(null);
@@ -314,16 +325,38 @@ export function DataView({
               Find book details as you need them
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Use the online search beside any book below to look for its cover,
-              synopsis, and story details. Your Goodreads books, ratings,
-              reviews, shelves, and reading dates stay unchanged.
+              Look up every book at once against Open Library, or use the online
+              search beside any book below for a single title. Your Goodreads
+              books, ratings, reviews, shelves, and reading dates stay
+              unchanged.
             </p>
           </div>
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
+            {enriching ? (
+              <Button
+                variant="outline"
+                className="h-11 rounded-xl"
+                onClick={onStopEnrich}
+              >
+                <CircleStop />
+                Stop
+              </Button>
+            ) : (
+              <Button
+                className="h-11 rounded-xl"
+                disabled={books.length === 0 || busy !== null}
+                onClick={() => void onEnrich()}
+              >
+                <Sparkles />
+                {completedMetadata > 0
+                  ? 'Find missing details'
+                  : 'Find details for all books'}
+              </Button>
+            )}
             <Button
               variant="outline"
               className="h-11 rounded-xl"
-              disabled={books.length === 0 || busy !== null}
+              disabled={books.length === 0 || busy !== null || enriching}
               onClick={() => metadataRef.current?.click()}
             >
               <Upload />
@@ -343,10 +376,13 @@ export function DataView({
         <div className="mt-5">
           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
-              {matchedMetadata.toLocaleString()} matched ·{' '}
-              {completedMetadata.toLocaleString()} checked
-              {metadataErrors > 0 &&
-                ` · ${metadataErrors.toLocaleString()} to retry`}
+              {enrichProgress
+                ? `Looking up ${enrichProgress.completed.toLocaleString()} of ${enrichProgress.total.toLocaleString()} · ${enrichProgress.matched.toLocaleString()} found`
+                : `${matchedMetadata.toLocaleString()} matched · ${completedMetadata.toLocaleString()} checked${
+                    metadataErrors > 0
+                      ? ` · ${metadataErrors.toLocaleString()} to retry`
+                      : ''
+                  }`}
             </span>
             <span>{booksWithIsbn.length.toLocaleString()} with ISBN</span>
           </div>

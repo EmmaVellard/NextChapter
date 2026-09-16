@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookMarked,
   CheckCircle2,
@@ -31,10 +31,12 @@ import {
   saveRankingOrder,
 } from '@/lib/database';
 import { buildTasteProfile } from '@/lib/taste-profile';
+import { enrichBookMetadata } from '@/lib/open-library';
 import type {
   BookMetadata,
   ImportSummary,
   LibrarySnapshot,
+  MetadataProgress,
   RecommendationFeedback,
 } from '@/lib/types';
 
@@ -62,6 +64,11 @@ export function NextChapterApp() {
   const [importOpen, setImportOpen] = useState(false);
   const [announcement, setAnnouncement] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState<MetadataProgress | null>(
+    null,
+  );
+  const stopEnrichRef = useRef(false);
   const profile = useMemo(
     () => buildTasteProfile(snapshot.books, snapshot.bookMetadata),
     [snapshot.books, snapshot.bookMetadata],
@@ -194,6 +201,46 @@ export function NextChapterApp() {
     await refresh();
     setView('next');
     setAnnouncement('Local Next Chapter data removed.');
+  }
+
+  // Open Library allows browser requests and the helper batches eight ISBNs per
+  // call with a pause between calls, so the whole library can be filled in from
+  // the app instead of from a terminal. Saved entries persist as they arrive,
+  // so stopping keeps what is done and a later run resumes from there.
+  async function enrichMetadata() {
+    if (enriching) return;
+    stopEnrichRef.current = false;
+    setEnriching(true);
+    setEnrichProgress(null);
+    try {
+      const finalProgress = await enrichBookMetadata({
+        books: snapshot.books,
+        existing: snapshot.bookMetadata,
+        includeTitleFallback: true,
+        save: saveBookMetadata,
+        onProgress: setEnrichProgress,
+        shouldStop: () => stopEnrichRef.current,
+      });
+      await refresh();
+      setAnnouncement(
+        stopEnrichRef.current
+          ? `Stopped. ${finalProgress.matched.toLocaleString()} of ${finalProgress.total.toLocaleString()} books have details so far.`
+          : `${finalProgress.matched.toLocaleString()} of ${finalProgress.total.toLocaleString()} books now have catalog details.`,
+      );
+    } catch (error) {
+      console.error('[Next Chapter] catalog lookup failed', error);
+      setAnnouncement(
+        'The catalog lookup could not finish. Anything already found was saved.',
+      );
+      await refresh().catch(() => {});
+    } finally {
+      setEnriching(false);
+      setEnrichProgress(null);
+    }
+  }
+
+  function stopEnrichMetadata() {
+    stopEnrichRef.current = true;
   }
 
   async function handleMetadataSave(entry: BookMetadata) {
@@ -347,6 +394,10 @@ export function NextChapterApp() {
               onRestoreBackup={handleRestore}
               onImportMetadata={handleMetadataImport}
               onSaveMetadata={handleMetadataSave}
+              onEnrich={enrichMetadata}
+              onStopEnrich={stopEnrichMetadata}
+              enriching={enriching}
+              enrichProgress={enrichProgress}
               onClear={clearData}
             />
           </ViewErrorBoundary>

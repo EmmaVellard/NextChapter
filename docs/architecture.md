@@ -39,10 +39,16 @@ snapshot atomically so removed or reshelved books do not linger.
 ## Catalog metadata boundary
 
 The CSV has no covers, synopsis field, or formal genre taxonomy. At the reader's
-request, a local catalog helper batches ISBNs to the official Open Library Books
-API. It requests only fields used in the product, creates a merge-only catalog
-file, and stays within the default one-request-per-second limit. The browser
-imports that file without replacing Goodreads records or reading activity.
+request, the app batches ISBNs to the official Open Library search index,
+eight per query, requesting only the fields used in the product and staying
+within the default one-request-per-second limit. This runs in the browser from
+the Data page and can be stopped; entries are saved as they arrive, so a later
+run resumes from where it left off. The same helper backs the command-line
+script that writes a merge-only catalog file for offline import.
+
+The /api/books endpoint this once used began answering 404 for every request,
+including known-good ISBNs, which marked whole batches as errors. The search
+index carries the same fields and is what both paths now query.
 
 Ratings, reviews, shelves, dates, and the taste profile are not included in
 these requests. Manual corrections can supply missing cover, synopsis, subject,

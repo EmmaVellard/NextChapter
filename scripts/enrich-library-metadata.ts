@@ -22,7 +22,6 @@ const progress = await enrichBookMetadata({
   books,
   existing: {},
   includeTitleFallback: false,
-  includeDescriptions: true,
   save: async (entry) => {
     entries.set(entry.bookId, entry);
   },

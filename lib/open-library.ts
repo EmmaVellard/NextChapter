@@ -21,29 +21,6 @@ type SearchDocument = {
 
 type SearchResponse = { docs?: SearchDocument[] };
 
-type BooksApiEntry = {
-  url?: string;
-  key?: string;
-  title?: string;
-  subtitle?: string;
-  authors?: Array<{ name?: string }>;
-  number_of_pages?: number;
-  publish_date?: string;
-  publishers?: Array<{ name?: string }>;
-  subjects?: Array<{ name?: string }>;
-  cover?: { medium?: string; large?: string };
-};
-
-type BooksApiResponse = Record<string, BooksApiEntry>;
-
-type BooksApiDetailsEntry = {
-  details?: {
-    description?: string | { value?: string };
-  };
-};
-
-type BooksApiDetailsResponse = Record<string, BooksApiDetailsEntry>;
-
 type WorkResponse = {
   description?: string | { value?: string };
 };
@@ -205,43 +182,6 @@ function errorMetadata(book: BookRecord): BookMetadata {
   return { ...metadataFor(book, null), status: 'error' };
 }
 
-function yearIn(value: string | undefined) {
-  const match = value?.match(/\b(\d{4})\b/);
-  return match ? Number(match[1]) : null;
-}
-
-function httpsUrl(value: string | undefined) {
-  return value?.replace(/^http:/, 'https:') ?? null;
-}
-
-function metadataForBooksApi(
-  book: BookRecord,
-  entry: BooksApiEntry | null,
-): BookMetadata {
-  if (!entry) return metadataFor(book, null);
-  return {
-    bookId: book.id,
-    status: 'matched',
-    provider: 'open-library',
-    providerKey: entry.key ?? null,
-    sourceUrl: httpsUrl(entry.url),
-    coverUrl: httpsUrl(entry.cover?.medium ?? entry.cover?.large),
-    subtitle: entry.subtitle?.trim() || null,
-    synopsis: null,
-    subjects: (entry.subjects ?? [])
-      .map((subject) => subject.name?.trim())
-      .filter((subject): subject is string => !!subject)
-      .slice(0, 40),
-    publishers: (entry.publishers ?? [])
-      .map((publisher) => publisher.name?.trim())
-      .filter((publisher): publisher is string => !!publisher)
-      .slice(0, 6),
-    firstPublishYear: yearIn(entry.publish_date),
-    pageCount: entry.number_of_pages ?? null,
-    fetchedAt: new Date().toISOString(),
-  };
-}
-
 async function fetchJson<T>(url: string, timeoutMs: number) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -259,36 +199,37 @@ async function fetchJson<T>(url: string, timeoutMs: number) {
   }
 }
 
-async function booksByIsbn(books: BookRecord[]) {
-  const bibkeys = books
-    .map(preferredIsbn)
-    .filter((isbn): isbn is string => !!isbn)
-    .map((isbn) => `ISBN:${isbn}`);
-  const parameters = new URLSearchParams({
-    bibkeys: bibkeys.join(','),
-    jscmd: 'data',
-    format: 'json',
-  });
-  return fetchJson<BooksApiResponse>(
-    `https://openlibrary.org/api/books?${parameters.toString()}`,
-    30_000,
-  );
+/**
+ * Looks a group of ISBNs up through the search index.
+ *
+ * The /api/books endpoint this used to call now answers 404 for every request,
+ * including ones that are known good, so the bulk lookup marked whole groups as
+ * errors. search.json accepts an isbn: query, batches the same way, and returns
+ * the fields the product actually stores. Results come back keyed by every ISBN
+ * the edition carries, so a book matches on whichever one its export holds.
+ */
+async function documentsByIsbn(books: BookRecord[]) {
+  const isbns = books.flatMap(isbnValues);
+  if (isbns.length === 0) return new Map<string, SearchDocument>();
+  const result = await search(`isbn:(${isbns.join(' OR ')})`, isbns.length * 2);
+  const byIsbn = new Map<string, SearchDocument>();
+  for (const document of result.docs ?? []) {
+    for (const isbn of document.isbn ?? []) {
+      if (!byIsbn.has(isbn)) byIsbn.set(isbn, document);
+    }
+  }
+  return byIsbn;
 }
 
-async function bookDetailsByIsbn(books: BookRecord[]) {
-  const bibkeys = books
-    .map(preferredIsbn)
-    .filter((isbn): isbn is string => !!isbn)
-    .map((isbn) => `ISBN:${isbn}`);
-  const parameters = new URLSearchParams({
-    bibkeys: bibkeys.join(','),
-    jscmd: 'details',
-    format: 'json',
-  });
-  return fetchJson<BooksApiDetailsResponse>(
-    `https://openlibrary.org/api/books?${parameters.toString()}`,
-    30_000,
-  );
+function documentForBook(
+  byIsbn: Map<string, SearchDocument>,
+  book: BookRecord,
+) {
+  for (const isbn of isbnValues(book)) {
+    const found = byIsbn.get(isbn);
+    if (found) return found;
+  }
+  return null;
 }
 
 async function search(query: string, limit: number) {
@@ -343,20 +284,8 @@ export async function findBookMetadata(book: BookRecord) {
 
   if (isbn) {
     try {
-      const entries = await booksByIsbn([book]);
-      isbnMetadata = metadataForBooksApi(book, entries[`ISBN:${isbn}`] ?? null);
-      await waitForRateLimit();
-      try {
-        const details = await bookDetailsByIsbn([book]);
-        isbnMetadata = {
-          ...isbnMetadata,
-          synopsis:
-            shortSynopsis(details[`ISBN:${isbn}`]?.details?.description) ??
-            isbnMetadata.synopsis,
-        };
-      } catch {
-        // Continue with the cover and edition details already found.
-      }
+      const byIsbn = await documentsByIsbn([book]);
+      isbnMetadata = metadataFor(book, documentForBook(byIsbn, book));
     } catch {
       // A title-and-author search below can still find another edition.
     }
@@ -399,14 +328,19 @@ export async function enrichBookMetadata({
   save,
   onProgress,
   includeTitleFallback = false,
-  includeDescriptions = false,
+  shouldStop,
 }: {
   books: BookRecord[];
   existing: BookMetadataMap;
   save: (metadata: BookMetadata) => Promise<void>;
   onProgress?: (progress: MetadataProgress) => void;
   includeTitleFallback?: boolean;
-  includeDescriptions?: boolean;
+  /**
+   * Checked between request groups. Everything already saved stays, and the
+   * next run resumes from there, because books that already carry metadata are
+   * filtered out of `pending` above.
+   */
+  shouldStop?: () => boolean;
 }) {
   const pending = books.filter(
     (book) => !existing[book.id] || existing[book.id]?.status === 'error',
@@ -433,34 +367,13 @@ export async function enrichBookMetadata({
   onProgress?.({ ...progress });
 
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+    if (shouldStop?.()) break;
     const { group, kind } = groups[groupIndex];
     try {
       if (kind === 'isbn') {
-        const entries = await booksByIsbn(group);
-        let detailEntries: BooksApiDetailsResponse = {};
-        if (includeDescriptions) {
-          await waitForRateLimit();
-          try {
-            detailEntries = await bookDetailsByIsbn(group);
-          } catch {
-            // Covers and subjects remain useful when descriptions are absent.
-          }
-        }
+        const byIsbn = await documentsByIsbn(group);
         for (const book of group) {
-          const isbn = preferredIsbn(book);
-          const baseMetadata = metadataForBooksApi(
-            book,
-            isbn ? (entries[`ISBN:${isbn}`] ?? null) : null,
-          );
-          const metadata = isbn
-            ? {
-                ...baseMetadata,
-                synopsis:
-                  shortSynopsis(
-                    detailEntries[`ISBN:${isbn}`]?.details?.description,
-                  ) ?? baseMetadata.synopsis,
-              }
-            : baseMetadata;
+          const metadata = metadataFor(book, documentForBook(byIsbn, book));
           await save(metadata);
           progress.completed += 1;
           if (metadata.status === 'matched') progress.matched += 1;

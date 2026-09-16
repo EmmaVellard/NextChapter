@@ -67,16 +67,10 @@
   --spine-light: rgba(255, 255, 255, 0.28);
   --spine-dark: rgba(20, 40, 44, 0.16);
   --spine-shadow: rgba(41, 54, 53, 0.16);
-  /* A warm counterweight to the teal: it carries the eyebrows and the selected
-     underline, so the accent never has to sit under white text. */
-  --amber-wash: oklch(0.93 0.035 75);
-  --amber-ink: oklch(0.48 0.1 62);
   --radius: 0.25rem;
 }
 
 .dark {
-  --amber-wash: oklch(0.26 0.035 72);
-  --amber-ink: oklch(0.82 0.085 78);
   color-scheme: dark;
   --background: oklch(0.16 0.016 200);
   --foreground: oklch(0.965 0.012 190);
@@ -172,7 +166,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--amber-ink);
+    color: var(--primary);
   }
 
   .editorial-choice {
@@ -222,22 +216,6 @@
   .surprise-label,
   .surprise-icon {
     color: var(--primary);
-  }
-
-  /* The middle option carries the warm accent so the three are told apart by
-     colour rather than by three identical frames. */
-  .surprise-choice:nth-child(2) {
-    border-top-color: color-mix(in oklch, var(--amber-ink), transparent 60%);
-  }
-
-  .surprise-choice:nth-child(2):hover {
-    border-top-color: var(--amber-ink);
-    background: linear-gradient(180deg, var(--amber-wash), transparent);
-  }
-
-  .surprise-choice:nth-child(2) .surprise-label,
-  .surprise-choice:nth-child(2) .surprise-icon {
-    color: var(--amber-ink);
   }
 
   @media (prefers-reduced-motion: reduce) {
