@@ -476,11 +476,7 @@ function FilterGroup({
         <h2 className="text-sm font-semibold">{label}</h2>
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
-      <div
-        className={`mt-3 flex flex-wrap gap-x-5 gap-y-1 ${label === 'Genre' ? 'shelf-choices' : ''}`}
-      >
-        {children}
-      </div>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1">{children}</div>
     </div>
   );
 }

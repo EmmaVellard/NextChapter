@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BookMarked,
-  BookOpen,
   CheckCircle2,
   Database,
   Feather,
   Sparkles,
 } from 'lucide-react';
 
+import { AppMark } from '@/components/app-mark';
 import { DataView } from '@/components/data-view';
 import { ImportDialog } from '@/components/import-dialog';
 import { InsightsView } from '@/components/insights-view';
@@ -232,7 +232,7 @@ export function NextChapterApp() {
             className="flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/55"
             onClick={() => changeView('next')}
           >
-            <BookOpen className="size-7 text-primary" aria-hidden="true" />
+            <AppMark className="size-7 text-primary" />
             <span className="whitespace-nowrap font-serif text-lg tracking-[-0.025em]">
               Next Chapter
             </span>

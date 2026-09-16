@@ -55,8 +55,8 @@ export function InsightsView({
               onClick={() => setSection(item.id)}
               className={`relative flex min-h-11 shrink-0 items-center text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/55 focus-visible:outline-none ${
                 active
-                  ? 'text-foreground font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-primary font-semibold'
+                  : 'text-muted-foreground hover:text-primary'
               }`}
             >
               {item.label}

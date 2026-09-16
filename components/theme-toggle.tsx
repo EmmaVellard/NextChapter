@@ -2,8 +2,6 @@
 
 import { Moon, Sun } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-
 export function ThemeToggle() {
   function toggleTheme() {
     const dark = document.documentElement.classList.toggle('dark');
@@ -14,17 +12,15 @@ export function ThemeToggle() {
   }
 
   return (
-    <Button
+    <button
       type="button"
-      variant="outline"
-      size="icon"
-      className="size-10 rounded-full bg-card/80"
       onClick={toggleTheme}
       aria-label="Toggle light and dark mode"
       title="Toggle light and dark mode"
+      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/55 grid size-11 place-items-center rounded-full transition-colors focus-visible:ring-3 focus-visible:outline-none"
     >
-      <Moon className="size-4 dark:hidden" />
-      <Sun className="hidden size-4 dark:block" />
-    </Button>
+      <Moon className="size-5 dark:hidden" aria-hidden="true" />
+      <Sun className="hidden size-5 dark:block" aria-hidden="true" />
+    </button>
   );
 }
