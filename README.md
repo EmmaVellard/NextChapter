@@ -7,9 +7,13 @@ for what to read next. Choose the kind of book you want, see why each title
 fits, and start a new chapter without spending the evening comparing hundreds
 of options.
 
-![Next Chapter showing a personal reading shortlist](docs/next-chapter-preview.jpg)
+![Next Chapter's shortlist: three books from the to-read shelf, each with its
+cover, why it fits, and buttons to tune the next set](docs/next-chapter-preview.jpg)
 
 ## Find the right book for right now
+
+![Next Chapter's chooser: genre, length, and how familiar the pick should
+feel](docs/next-chapter-choose.jpg)
 
 Tell Next Chapter what kind of reading experience you want:
 
