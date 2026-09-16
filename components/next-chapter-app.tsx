@@ -23,6 +23,8 @@ import {
   createBackup,
   getLibrarySnapshot,
   importBookMetadataCache,
+  describeBackup,
+  getSavedBookCount,
   restoreBackup,
   saveBookMetadata,
   saveRecommendationFeedback,
@@ -141,9 +143,17 @@ export function NextChapterApp() {
     } catch {
       throw new Error('This file is not valid JSON.');
     }
+    // Validate and count before asking, so the confirmation can state exactly
+    // what is being replaced and an unusable file fails before the prompt.
+    const incoming = describeBackup(parsed);
+    const savedCount = await getSavedBookCount();
+    const replacing =
+      savedCount === 0
+        ? 'Your library is currently empty.'
+        : `This replaces the ${savedCount.toLocaleString()} books saved on this device.`;
     if (
       !window.confirm(
-        'Restore this backup? It will replace the current local Next Chapter library.',
+        `Restore ${incoming.books.toLocaleString()} books from this backup? ${replacing} This cannot be undone.`,
       )
     ) {
       throw new Error(

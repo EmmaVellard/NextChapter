@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import {
+  AlertTriangle,
   CheckCircle2,
   FileSpreadsheet,
   LoaderCircle,
@@ -17,8 +18,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { importGoodreadsFile } from '@/lib/database';
-import type { ImportSummary } from '@/lib/types';
+import {
+  commitGoodreadsImport,
+  isRiskyReplacement,
+  prepareGoodreadsImport,
+} from '@/lib/database';
+import type { ImportSummary, PreparedImport } from '@/lib/types';
 
 export function ImportDialog({
   open,
@@ -34,14 +39,14 @@ export function ImportDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [pending, setPending] = useState<PreparedImport | null>(null);
 
-  async function handleFile(file: File | undefined) {
-    if (!file) return;
+  async function commit(prepared: PreparedImport) {
+    setPending(null);
     setBusy(true);
     setError(null);
-    setSummary(null);
     try {
-      const nextSummary = await importGoodreadsFile(file);
+      const nextSummary = await commitGoodreadsImport(prepared);
       await onImported(nextSummary);
       setSummary(nextSummary);
     } catch (caught) {
@@ -50,6 +55,31 @@ export function ImportDialog({
       );
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    setSummary(null);
+    setPending(null);
+    try {
+      // Parse and count first: replacing the library is irreversible, so a file
+      // that would discard most of it has to be confirmed with real numbers.
+      const prepared = await prepareGoodreadsImport(file);
+      if (isRiskyReplacement(prepared)) {
+        setPending(prepared);
+        setBusy(false);
+        return;
+      }
+      await commit(prepared);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : 'The import did not finish.',
+      );
+      setBusy(false);
+    } finally {
       if (inputRef.current) inputRef.current.value = '';
     }
   }
@@ -58,6 +88,7 @@ export function ImportDialog({
     if (busy) return;
     setError(null);
     setSummary(null);
+    setPending(null);
     setDragActive(false);
     onOpenChange(false);
   }
@@ -99,6 +130,55 @@ export function ImportDialog({
                 Skipped {summary.skippedRows} rows without a title or author.
               </p>
             )}
+          </div>
+        ) : pending ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-destructive/40 bg-destructive/10 p-5"
+          >
+            <AlertTriangle
+              className="size-6 text-destructive"
+              aria-hidden="true"
+            />
+            <h3 className="mt-3 text-lg font-semibold">
+              This import removes books
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Each import replaces your whole library. This file has far fewer
+              books than what is already saved, which usually means it is not
+              the export you meant to choose.
+            </p>
+            <p className="mt-3 rounded-xl border border-border bg-card p-3 text-xs leading-5 text-muted-foreground">
+              Replacing{' '}
+              <strong className="text-foreground">
+                {pending.existingCount.toLocaleString()}
+              </strong>{' '}
+              saved books
+              {pending.existingFileName
+                ? ` from ${pending.existingFileName}`
+                : ''}{' '}
+              with{' '}
+              <strong className="text-foreground">
+                {pending.result.books.length.toLocaleString()}
+              </strong>{' '}
+              from {pending.fileName}.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                className="h-10 flex-1 rounded-xl"
+                onClick={() => setPending(null)}
+              >
+                Cancel, keep my books
+              </Button>
+              <Button
+                variant="destructive"
+                className="h-10 flex-1 rounded-xl"
+                onClick={() => void commit(pending)}
+              >
+                Replace anyway
+              </Button>
+            </div>
           </div>
         ) : error ? (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/8 p-5">

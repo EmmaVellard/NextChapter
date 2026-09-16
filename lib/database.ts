@@ -8,7 +8,9 @@ import type {
   ImportSummary,
   LibrarySnapshot,
   MetadataCacheSnapshot,
+  BackupDescription,
   MetadataImportSummary,
+  PreparedImport,
   RecommendationFeedback,
 } from '@/lib/types';
 
@@ -171,7 +173,18 @@ export async function getLibrarySnapshot(): Promise<LibrarySnapshot> {
   };
 }
 
-export async function importGoodreadsFile(file: File): Promise<ImportSummary> {
+// An import replaces the whole library, which is the user's only copy, so a
+// file with far fewer rows than the stored one is usually the wrong export
+// rather than an intentional update.
+const SUSPICIOUS_SHRINK_RATIO = 0.5;
+
+/**
+ * Parses and counts without writing anything, so the caller can warn with real
+ * numbers before the existing library is replaced.
+ */
+export async function prepareGoodreadsImport(
+  file: File,
+): Promise<PreparedImport> {
   if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
     throw new Error('Choose the goodreads_library_export.csv file.');
   }
@@ -182,6 +195,41 @@ export async function importGoodreadsFile(file: File): Promise<ImportSummary> {
   }
 
   const result = parseGoodreadsCsv(await file.text());
+  if (result.books.length === 0) {
+    throw new Error(
+      'No books could be read from this file. Your library was not changed.',
+    );
+  }
+
+  const database = await getDatabase();
+  const existingCount = await database.count('books');
+  const existingFileName = await database.get('metadata', 'sourceFileName');
+
+  return {
+    result,
+    fileName: file.name,
+    existingCount,
+    existingFileName:
+      typeof existingFileName?.value === 'string'
+        ? existingFileName.value
+        : null,
+  };
+}
+
+/** True when committing this import would discard most of the saved library. */
+export function isRiskyReplacement(prepared: PreparedImport) {
+  if (prepared.existingCount === 0) return false;
+  return (
+    prepared.result.books.length <
+    prepared.existingCount * SUSPICIOUS_SHRINK_RATIO
+  );
+}
+
+export async function commitGoodreadsImport(
+  prepared: PreparedImport,
+): Promise<ImportSummary> {
+  const result = prepared.result;
+  const file = { name: prepared.fileName };
   const importedAt = new Date().toISOString();
   const database = await getDatabase();
   const previousMetadata = await database.getAll('bookMetadata');
@@ -352,7 +400,12 @@ function isBookRecord(value: unknown): value is BookRecord {
   );
 }
 
-export async function restoreBackup(value: unknown) {
+/**
+ * Validates a backup and reports what it holds, without writing anything, so a
+ * confirmation can state real counts instead of asking the user to agree to
+ * replacing their library with an unknown quantity.
+ */
+export function describeBackup(value: unknown): BackupDescription {
   if (!value || typeof value !== 'object') {
     throw new Error('The backup is not valid JSON.');
   }
@@ -368,6 +421,32 @@ export async function restoreBackup(value: unknown) {
   ) {
     throw new Error('This is not a compatible Next Chapter backup.');
   }
+
+  // Restoring clears the library first, so an empty backup is a silent way to
+  // lose everything. There is no reason to restore one.
+  if (candidate.snapshot.books.length === 0) {
+    throw new Error(
+      'This backup contains no books, so restoring it would empty your library. Nothing was changed.',
+    );
+  }
+
+  return {
+    books: candidate.snapshot.books.length,
+    createdAt: candidate.createdAt ?? null,
+    sourceFileName: candidate.snapshot.sourceFileName ?? null,
+  };
+}
+
+/** Books currently saved, for a confirmation that names what is at stake. */
+export async function getSavedBookCount() {
+  const database = await getDatabase();
+  return database.count('books');
+}
+
+export async function restoreBackup(value: unknown) {
+  describeBackup(value);
+  const candidate = value as BackupSnapshot;
+  const version = (candidate as { version?: number }).version;
 
   const database = await getDatabase();
   const transaction = database.transaction(

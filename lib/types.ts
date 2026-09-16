@@ -77,6 +77,20 @@ export interface ImportSummary {
   importedAt: string;
 }
 
+export interface BackupDescription {
+  books: number;
+  createdAt: string | null;
+  sourceFileName: string | null;
+}
+
+export interface PreparedImport {
+  result: GoodreadsParseResult;
+  fileName: string;
+  /** Books already saved, so a warning can state what would be discarded. */
+  existingCount: number;
+  existingFileName: string | null;
+}
+
 export interface GoodreadsParseResult {
   books: BookRecord[];
   parsedRows: number;
