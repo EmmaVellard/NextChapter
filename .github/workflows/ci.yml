@@ -8,6 +8,12 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # The deployed app is a static export served from a sub-path, so build it
+    # that way here too. Without these, CI built a server app at the root and
+    # never exercised the only configuration that actually ships.
+    env:
+      GITHUB_PAGES: 'true'
+      NEXT_PUBLIC_BASE_PATH: '/NextChapter'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -23,3 +29,6 @@ jobs:
 
       - name: Validate app
         run: npm run quality
+
+      - name: Verify static export
+        run: npm run verify:export

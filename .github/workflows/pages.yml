@@ -42,6 +42,11 @@ jobs:
       - name: Build static site
         run: npm run build
 
+      # Publishing to an installed PWA is hard to undo, so refuse to upload an
+      # export with a wrong base path or missing PWA assets.
+      - name: Verify static export
+        run: npm run verify:export
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
