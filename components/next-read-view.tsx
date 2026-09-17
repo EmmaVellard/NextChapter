@@ -695,7 +695,7 @@ function RecommendationCard({
               target="_blank"
               rel="noreferrer"
             >
-              Open Library{' '}
+              {details.provider === 'google-books' ? 'Google Books' : 'Open Library'}{' '}
               <ArrowUpRight className="size-3" aria-hidden="true" />
             </a>
           )}

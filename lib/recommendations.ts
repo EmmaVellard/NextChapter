@@ -98,7 +98,7 @@ function genreFit(
   return genresForBook(book, metadata).includes(context.genre) ? 1 : null;
 }
 
-function tasteFit(
+export function tasteFit(
   book: BookRecord,
   profile: TasteProfile,
   metadata: BookMetadataMap,

@@ -29,7 +29,7 @@ export type BookMetadataStatus = 'matched' | 'not-found' | 'error';
 export interface BookMetadata {
   bookId: string;
   status: BookMetadataStatus;
-  provider: 'open-library' | 'manual';
+  provider: 'open-library' | 'google-books' | 'manual';
   providerKey: string | null;
   sourceUrl: string | null;
   coverUrl: string | null;

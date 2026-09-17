@@ -323,7 +323,9 @@ function isBookMetadata(value: unknown): value is BookMetadata {
   return (
     typeof candidate.bookId === 'string' &&
     ['matched', 'not-found', 'error'].includes(candidate.status ?? '') &&
-    ['open-library', 'manual'].includes(candidate.provider ?? '') &&
+    ['open-library', 'google-books', 'manual'].includes(
+      candidate.provider ?? '',
+    ) &&
     Array.isArray(candidate.subjects) &&
     candidate.subjects.every((subject) => typeof subject === 'string') &&
     Array.isArray(candidate.publishers) &&

@@ -187,7 +187,10 @@ export function LibraryView({
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Open Library <ArrowUpRight className="size-3" />
+                      {details.provider === 'google-books'
+                        ? 'Google Books'
+                        : 'Open Library'}{' '}
+                      <ArrowUpRight className="size-3" />
                     </a>
                   )}
                 </div>

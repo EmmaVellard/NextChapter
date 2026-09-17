@@ -377,6 +377,7 @@ export function NextChapterApp() {
               books={snapshot.books}
               metadata={snapshot.bookMetadata}
               profile={profile}
+              feedback={snapshot.recommendationFeedback}
               rankingOrder={snapshot.rankingOrder}
               loading={loading}
               onImport={() => setImportOpen(true)}

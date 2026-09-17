@@ -1,3 +1,10 @@
+import {
+  findByIsbn as findGoogleBooksByIsbn,
+  findByTitleAuthor as findGoogleBooksByTitleAuthor,
+  waitForGoogleBooksRateLimit,
+  type GoogleBooksMatch,
+} from '@/lib/google-books';
+import { firstSentence, shortSynopsis } from '@/lib/text';
 import type {
   BookMetadata,
   BookMetadataMap,
@@ -65,37 +72,6 @@ function preferredIsbn(book: BookRecord) {
 
 function titleQueryValue(value: string) {
   return `"${value.replace(/[\\"]/g, ' ').trim()}"`;
-}
-
-function firstSentence(value: SearchDocument['first_sentence']) {
-  const sentence = Array.isArray(value) ? value[0] : value;
-  if (!sentence) return null;
-  return (
-    sentence
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim() || null
-  );
-}
-
-function shortSynopsis(value: string | { value?: string } | undefined) {
-  const raw = typeof value === 'string' ? value : value?.value;
-  if (!raw) return null;
-  const clean = raw
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!clean) return null;
-  if (clean.length <= 420) return clean;
-  const excerpt = clean.slice(0, 420);
-  const sentenceEnd = Math.max(
-    excerpt.lastIndexOf('. '),
-    excerpt.lastIndexOf('! '),
-    excerpt.lastIndexOf('? '),
-  );
-  if (sentenceEnd >= 180) return excerpt.slice(0, sentenceEnd + 1);
-  const wordEnd = excerpt.lastIndexOf(' ');
-  return `${excerpt.slice(0, wordEnd > 0 ? wordEnd : 420)}…`;
 }
 
 function matchScore(book: BookRecord, document: SearchDocument) {
@@ -278,6 +254,74 @@ function mergeFoundMetadata(
   };
 }
 
+/** True when Open Library left nothing usable, so a fallback lookup is worth the extra request. */
+function needsFallback(metadata: BookMetadata) {
+  return (
+    metadata.status !== 'matched' ||
+    (!metadata.coverUrl && !metadata.synopsis)
+  );
+}
+
+async function googleBooksFallbackMatch(book: BookRecord, allowTitleSearch: boolean) {
+  const isbn = preferredIsbn(book);
+  try {
+    if (isbn) return await findGoogleBooksByIsbn(isbn);
+    if (allowTitleSearch) {
+      return await findGoogleBooksByTitleAuthor(searchTitle(book.title), book.author);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function withGoogleBooksFallback(
+  metadata: BookMetadata,
+  match: GoogleBooksMatch | null,
+): BookMetadata {
+  if (!match) return metadata;
+  if (metadata.status !== 'matched') {
+    return {
+      ...metadata,
+      status: 'matched',
+      provider: 'google-books',
+      providerKey: match.providerKey,
+      sourceUrl: match.sourceUrl,
+      coverUrl: match.coverUrl,
+      subtitle: match.subtitle,
+      synopsis: match.synopsis,
+      subjects: match.subjects,
+      publishers: match.publishers,
+      firstPublishYear: match.firstPublishYear,
+      pageCount: match.pageCount,
+    };
+  }
+  return {
+    ...metadata,
+    coverUrl: metadata.coverUrl ?? match.coverUrl,
+    synopsis: metadata.synopsis ?? match.synopsis,
+    subtitle: metadata.subtitle ?? match.subtitle,
+    subjects: metadata.subjects.length > 0 ? metadata.subjects : match.subjects,
+    publishers:
+      metadata.publishers.length > 0 ? metadata.publishers : match.publishers,
+    firstPublishYear: metadata.firstPublishYear ?? match.firstPublishYear,
+    pageCount: metadata.pageCount ?? match.pageCount,
+  };
+}
+
+/** Only calls Google Books when Open Library left the entry incomplete, and paces the call independently of Open Library's own rate limit. */
+async function withFallbackApplied(
+  book: BookRecord,
+  metadata: BookMetadata,
+  allowTitleSearch: boolean,
+  shouldStop?: () => boolean,
+) {
+  if (!needsFallback(metadata) || shouldStop?.()) return metadata;
+  await waitForGoogleBooksRateLimit();
+  const match = await googleBooksFallbackMatch(book, allowTitleSearch);
+  return withGoogleBooksFallback(metadata, match);
+}
+
 export async function findBookMetadata(book: BookRecord) {
   const isbn = preferredIsbn(book);
   let isbnMetadata: BookMetadata | null = null;
@@ -291,35 +335,55 @@ export async function findBookMetadata(book: BookRecord) {
     }
   }
 
+  let result: BookMetadata;
   try {
-    if (isbnMetadata?.coverUrl && isbnMetadata.synopsis) return isbnMetadata;
-    if (isbn) await waitForRateLimit();
-    const result = await search(
-      `title:${titleQueryValue(searchTitle(book.title))} author:${titleQueryValue(book.author)}`,
-      20,
-    );
-    const matched = bestMatch(book, result.docs ?? []);
-    let searched = metadataFor(book, matched);
-    if (searched.providerKey?.startsWith('/works/')) {
-      await waitForRateLimit();
-      try {
-        const work = await fetchJson<WorkResponse>(
-          `https://openlibrary.org${searched.providerKey}.json`,
-          15_000,
-        );
-        searched = {
-          ...searched,
-          synopsis: shortSynopsis(work.description) ?? searched.synopsis,
-        };
-      } catch {
-        // Search results may still include a cover and useful book details.
+    if (isbnMetadata?.coverUrl && isbnMetadata.synopsis) {
+      result = isbnMetadata;
+    } else {
+      if (isbn) await waitForRateLimit();
+      const searchResult = await search(
+        `title:${titleQueryValue(searchTitle(book.title))} author:${titleQueryValue(book.author)}`,
+        20,
+      );
+      const matched = bestMatch(book, searchResult.docs ?? []);
+      let searched = metadataFor(book, matched);
+      if (searched.providerKey?.startsWith('/works/')) {
+        await waitForRateLimit();
+        try {
+          const work = await fetchJson<WorkResponse>(
+            `https://openlibrary.org${searched.providerKey}.json`,
+            15_000,
+          );
+          searched = {
+            ...searched,
+            synopsis: shortSynopsis(work.description) ?? searched.synopsis,
+          };
+        } catch {
+          // Search results may still include a cover and useful book details.
+        }
       }
+      result = mergeFoundMetadata(isbnMetadata, searched);
     }
-    return mergeFoundMetadata(isbnMetadata, searched);
   } catch (error) {
-    if (isbnMetadata?.status === 'matched') return isbnMetadata;
-    throw error;
+    if (isbnMetadata?.status === 'matched') {
+      result = isbnMetadata;
+    } else {
+      throw error;
+    }
   }
+
+  return withFallbackApplied(book, result, true);
+}
+
+// Open Library's index keeps growing, so a genuine miss today may match later.
+// Errors retry on every run; a settled "not found" only retries once it is
+// stale enough that re-checking is worth the request.
+const NOT_FOUND_RETRY_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+function isRetryable(entry: BookMetadata) {
+  if (entry.status === 'error') return true;
+  if (entry.status !== 'not-found') return false;
+  return Date.now() - new Date(entry.fetchedAt).getTime() > NOT_FOUND_RETRY_AFTER_MS;
 }
 
 export async function enrichBookMetadata({
@@ -343,7 +407,7 @@ export async function enrichBookMetadata({
   shouldStop?: () => boolean;
 }) {
   const pending = books.filter(
-    (book) => !existing[book.id] || existing[book.id]?.status === 'error',
+    (book) => !existing[book.id] || isRetryable(existing[book.id]),
   );
   const withIsbn = pending.filter((book) => isbnValues(book).length > 0);
   const withoutIsbn = pending.filter((book) => isbnValues(book).length === 0);
@@ -373,7 +437,12 @@ export async function enrichBookMetadata({
       if (kind === 'isbn') {
         const byIsbn = await documentsByIsbn(group);
         for (const book of group) {
-          const metadata = metadataFor(book, documentForBook(byIsbn, book));
+          const metadata = await withFallbackApplied(
+            book,
+            metadataFor(book, documentForBook(byIsbn, book)),
+            includeTitleFallback,
+            shouldStop,
+          );
           await save(metadata);
           progress.completed += 1;
           if (metadata.status === 'matched') progress.matched += 1;
@@ -387,7 +456,12 @@ export async function enrichBookMetadata({
         const result = await search(query, 80);
         const documents = result.docs ?? [];
         for (const book of group) {
-          const metadata = metadataFor(book, bestMatch(book, documents));
+          const metadata = await withFallbackApplied(
+            book,
+            metadataFor(book, bestMatch(book, documents)),
+            includeTitleFallback,
+            shouldStop,
+          );
           await save(metadata);
           progress.completed += 1;
           if (metadata.status === 'matched') progress.matched += 1;

@@ -6,7 +6,12 @@ import { BarChart3, CalendarDays, Trophy } from 'lucide-react';
 import { RankingView } from '@/components/ranking-view';
 import { TasteView } from '@/components/taste-view';
 import { YearView } from '@/components/year-view';
-import type { BookMetadataMap, BookRecord, TasteProfile } from '@/lib/types';
+import type {
+  BookMetadataMap,
+  BookRecord,
+  RecommendationFeedback,
+  TasteProfile,
+} from '@/lib/types';
 
 type Insight = 'profile' | 'years' | 'ranking';
 
@@ -24,6 +29,7 @@ export function InsightsView({
   books,
   metadata,
   profile,
+  feedback,
   rankingOrder,
   loading,
   onImport,
@@ -32,6 +38,7 @@ export function InsightsView({
   books: BookRecord[];
   metadata: BookMetadataMap;
   profile: TasteProfile;
+  feedback: RecommendationFeedback[];
   rankingOrder: string[];
   loading: boolean;
   onImport: () => void;
@@ -72,7 +79,14 @@ export function InsightsView({
       </nav>
 
       {section === 'profile' && (
-        <TasteView profile={profile} loading={loading} onImport={onImport} />
+        <TasteView
+          profile={profile}
+          books={books}
+          metadata={metadata}
+          feedback={feedback}
+          loading={loading}
+          onImport={onImport}
+        />
       )}
       {section === 'years' && (
         <YearView

@@ -50,6 +50,17 @@ The /api/books endpoint this once used began answering 404 for every request,
 including known-good ISBNs, which marked whole batches as errors. The search
 index carries the same fields and is what both paths now query.
 
+When Open Library leaves a book unmatched, or matches it without a cover or
+synopsis, the app falls back to the Google Books volumes API for that one
+book, sending only its ISBN or title and author, never ratings, reviews, or
+shelves. Google fills gaps only; a field Open Library already supplied is
+never overwritten. A book that Open Library could not find at all is
+attributed to Google Books; one Open Library partially matched keeps its
+Open Library attribution with the missing fields filled in.
+
+Books Open Library could not find are retried automatically after 30 days,
+since its index keeps growing; retryable errors are retried on every run.
+
 Ratings, reviews, shelves, dates, and the taste profile are not included in
 these requests. Manual corrections can supply missing cover, synopsis, subject,
 publication, or series fields. They take precedence over later catalog imports.

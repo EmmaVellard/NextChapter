@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import {
   BarChart3,
   Compass,
   Feather,
   Flame,
   Layers3,
+  Scale,
   Sparkles,
   Tags,
   Upload,
@@ -11,17 +13,34 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import type { TasteProfile, TasteSignal } from '@/lib/types';
+import { feedbackAlignment } from '@/lib/recommendation-diagnostics';
+import type {
+  BookMetadataMap,
+  BookRecord,
+  RecommendationFeedback,
+  TasteProfile,
+  TasteSignal,
+} from '@/lib/types';
 
 export function TasteView({
   profile,
+  books,
+  metadata,
+  feedback,
   loading,
   onImport,
 }: {
   profile: TasteProfile;
+  books: BookRecord[];
+  metadata: BookMetadataMap;
+  feedback: RecommendationFeedback[];
   loading: boolean;
   onImport: () => void;
 }) {
+  const alignment = useMemo(
+    () => feedbackAlignment({ feedback, books, profile, metadata }),
+    [feedback, books, profile, metadata],
+  );
   if (loading)
     return (
       <div className="mx-auto h-[560px] max-w-5xl animate-pulse rounded-sm bg-card" />
@@ -192,6 +211,42 @@ export function TasteView({
             />
           </div>
         </section>
+      )}
+
+      {alignment && (
+        <article className="mt-8 border-t border-border py-6 sm:py-7">
+          <div className="flex items-center gap-3">
+            <Scale className="size-5 text-primary" />
+            <div>
+              <p className="eyebrow">Feedback check</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em]">
+                Does the taste model track what you actually pick
+              </h2>
+            </div>
+          </div>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {alignment.aligned ? (
+              <>
+                Books you asked for more of score higher on your taste model
+                (avg {alignment.likedAverage.toFixed(2)} across{' '}
+                {alignment.likedCount}) than the ones you passed on (avg{' '}
+                {alignment.passedAverage.toFixed(2)} across{' '}
+                {alignment.passedCount}) — the scoring is tracking your actual
+                choices.
+              </>
+            ) : (
+              <>
+                Books you asked for more of (avg{' '}
+                {alignment.likedAverage.toFixed(2)} across{' '}
+                {alignment.likedCount}) are scoring about the same as the ones
+                you passed on (avg {alignment.passedAverage.toFixed(2)} across{' '}
+                {alignment.passedCount}). The taste model may need more
+                ratings, or those choices were about length or mood rather
+                than taste.
+              </>
+            )}
+          </p>
+        </article>
       )}
     </section>
   );
