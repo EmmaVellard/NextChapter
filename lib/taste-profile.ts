@@ -25,6 +25,17 @@ const priors: Record<TasteDimension, number> = {
   length: 6,
 };
 
+// Midpoint of the 1-5 Goodreads scale. Identity signals (who wrote it, what
+// story shape or genre it is) compare against this fixed center rather than
+// the reader's own overall average, so a reader whose entire rated history
+// sits inside one signal (e.g. every rated book is by the same favorite
+// author) still gets credit for a uniformly high rating instead of a delta
+// of zero against itself. Decade/length stay relative to the reader's own
+// average, since "I prefer older books" or "I prefer long books" only means
+// something in contrast to the rest of what they've rated.
+const NEUTRAL_RATING = 3;
+const identityDimensions = new Set<TasteDimension>(['author', 'genre', 'story']);
+
 const minimumSamples: Record<TasteDimension, number> = {
   story: 3,
   author: 2,
@@ -282,11 +293,14 @@ export function buildTasteProfile(
         ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
       const confidence =
         ratings.length / (ratings.length + priors[feature.dimension]);
+      const baseline = identityDimensions.has(feature.dimension)
+        ? NEUTRAL_RATING
+        : overallAverage;
       return {
         ...feature,
         sampleSize: ratings.length,
         average,
-        delta: (average - overallAverage) * confidence,
+        delta: (average - baseline) * confidence,
         confidence,
       };
     })

@@ -74,9 +74,8 @@ async function fetchJson<T>(url: string, timeoutMs: number) {
 }
 
 async function volumes(query: string, maxResults: number) {
-  const parameters = new URLSearchParams({ q: query, maxResults: String(maxResults) });
   return fetchJson<VolumesResponse>(
-    `https://www.googleapis.com/books/v1/volumes?${parameters.toString()}`,
+    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${maxResults}`,
     15_000,
   );
 }
