@@ -272,8 +272,10 @@ export function NextChapterApp() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/88 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8 lg:px-10">
+      {/* viewportFit cover means the header would otherwise sit underneath the
+          notch in an installed PWA. */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-[max(1.25rem,env(safe-area-inset-left))] sm:px-8 lg:px-10">
           <button
             type="button"
             className="flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/55"
